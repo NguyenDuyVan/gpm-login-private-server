@@ -21,6 +21,7 @@ docker compose down -v
 ## Restart test docker
 ```
 docker-compose down
+docker-compose build --no-cache
 docker-compose up -d
 ```
 
