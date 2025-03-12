@@ -61,17 +61,12 @@ RUN apt-get update && apt-get install -y \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy file source Laravel vào container
-COPY . /var/www
+COPY . /var/www/html
+WORKDIR /var/www/html
 
 # Cấp quyền ghi cho storage và bootstrap/cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-RUN rm -rf public/storage
-RUN php artisan storage:link
-RUN php artisan key:generate
-# RUN chmod -Rf 777 ./storage
-RUN chmod 777 /var/www/html/.env
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # # Thiết lập quyền truy cập
 # RUN chown -R www-data:www-data /var/www \
@@ -83,5 +78,11 @@ RUN a2enmod rewrite
 
 # Expose cổng 80
 EXPOSE 80
+
+RUN rm -rf public/storage
+RUN php artisan storage:link
+RUN php artisan key:generate
+# RUN chmod -Rf 777 ./storage
+RUN chmod 777 /var/www/html/.env
 
 CMD ["apache2-foreground"]

@@ -34,6 +34,11 @@ docker buildx inspect --bootstrap
 docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:latest --push .
 ```
 
+## Docker publish php 8.1 apache
+```
+docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:php8_1_apache --push .
+```
+
 ## Create file update
 - Create zip all folder
 - Remove artisan, vendor/composer, vender/autoload.php
