@@ -18,6 +18,12 @@ docker compose down -v
 ./vendor/bin/sail up
 ```
 
+## Restart test docker
+```
+docker-compose down
+docker-compose up -d
+```
+
 ## Docker publish
 ```
 docker build -t ngochoaitn/gpm-login-private-server:beta-test .
