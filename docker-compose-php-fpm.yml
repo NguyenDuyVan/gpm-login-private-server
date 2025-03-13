@@ -4,19 +4,29 @@ services:
     app:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: ./docker/php-fpm/Dockerfile
         restart: unless-stopped
         working_dir: /var/www/html
-        ports:
-            - "${WEB_PORT:-80}:80"
         volumes:
-            # - '.:/var/www/html'
+            # - '.:/var/www/html' # Dùng cái này trên windows sẽ chậm hơn, chỉ để test cho nhanh
             - ./.env:/var/www/html/.env
             - 'web_storage:/var/www/html/storage'
             - './docker/php/php_large_file_upload.ini:/usr/local/etc/php/conf.d/php_large_file_upload.ini'
-            - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
         networks:
             - laravel-network
+    nginx:
+        image: nginx:alpine
+        restart: unless-stopped
+        ports:
+            - "80:80"
+        volumes:
+            - '.:/var/www/html'
+            - './docker/nginx:/etc/nginx/conf.d'
+            - 'web_storage:/var/www/html/storage'
+        networks:
+            - laravel-network
+        depends_on:
+            - app
     mysql:
         image: 'mysql/mysql-server:8.0'
         # ports:
