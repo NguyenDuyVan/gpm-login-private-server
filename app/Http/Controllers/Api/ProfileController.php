@@ -36,20 +36,30 @@ class ProfileController extends BaseController
             //     ->where('profile_roles.user_id', $user->id)
             //     ->select('profiles.id')->get();
 
-            $ids = DB::table('profiles')
-            ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
-            ->where(function($query) use ($user, $ids_group_share) {
-                $query->where('profile_roles.user_id', $user->id)
-                      ->orWhereIn('profiles.group_id', $ids_group_share);
-            })
-            ->select('profiles.id')->get();
+            // $ids = DB::table('profiles')
+            // ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
+            // ->where(function($query) use ($user, $ids_group_share) {
+            //     $query->where('profile_roles.user_id', $user->id)
+            //           ->orWhereIn('profiles.group_id', $ids_group_share);
+            // })
+            // ->select('profiles.id')->get();
             
-            $arrIds = [];
-            foreach ($ids as $id){
-                array_push($arrIds, $id->id);
-            }
+            // $arrIds = [];
+            // foreach ($ids as $id){
+            //     array_push($arrIds, $id->id);
+            // }
 
-            $tmp = Profile::whereIntegerInRaw('id', $arrIds)->with(['createdUser', 'lastRunUser', 'group']);
+            // $tmp = Profile::whereIntegerInRaw('id', $arrIds)->with(['createdUser', 'lastRunUser', 'group']);
+
+            $tmp = Profile::whereIn('id', function ($query) use ($user, $ids_group_share) {
+                $query->select('profiles.id')
+                    ->from('profiles')
+                    ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
+                    ->where(function($q) use ($user, $ids_group_share) {
+                        $q->where('profile_roles.user_id', $user->id)
+                          ->orWhereIn('profiles.group_id', $ids_group_share);
+                    });
+            })->with(['createdUser', 'lastRunUser', 'group']);
         }
 
         // Order by group
