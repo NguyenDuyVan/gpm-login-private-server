@@ -19,24 +19,36 @@ class ProfileService
      * @param array $filters
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getProfiles(User $user, array $filters = [])
+    public function getProfiles(User $user, array $filters = [], array $extensiveFields = [])
     {
-        // Default, show all profiles
-        $query = Profile::with(['createdUser', 'lastRunUser', 'group']);
+        $selectFields = ['id', 'name', 's3_path', 'cookie_data', 'group_id', 'created_by', 'status', 'last_run_at', 'last_run_by', 'created_at', 'updated_at'];
+        // Add extensive fields if provided, avoid duplicates
+        if (count($extensiveFields) > 0) {
+            foreach ($extensiveFields as $field) {
+            if (!in_array($field, $selectFields)) {
+                $selectFields[] = $field;
+            }
+            }
+        }
+        // Default, show all profiles, exclude json_data field
+        $query = Profile::select($selectFields)
+                        ->with(['createdUser', 'lastRunUser', 'group']);
 
         // If user isn't admin, show by role
         if ($user->role < 2) {
             $ids_group_share = DB::table('group_roles')->where('user_id', $user->id)->pluck('group_id');
 
-            $query = Profile::whereIn('id', function ($subQuery) use ($user, $ids_group_share) {
-                $subQuery->select('profiles.id')
-                    ->from('profiles')
-                    ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
-                    ->where(function($q) use ($user, $ids_group_share) {
-                        $q->where('profile_roles.user_id', $user->id)
-                          ->orWhereIn('profiles.group_id', $ids_group_share);
-                    });
-            })->with(['createdUser', 'lastRunUser', 'group']);
+            $query = Profile::select($selectFields)
+                ->whereIn('id', function ($subQuery) use ($user, $ids_group_share) {
+                    $subQuery->select('profiles.id')
+                        ->from('profiles')
+                        ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
+                        ->where(function($q) use ($user, $ids_group_share) {
+                            $q->where('profile_roles.user_id', $user->id)
+                              ->orWhereIn('profiles.group_id', $ids_group_share);
+                        });
+                })
+                ->with(['createdUser', 'lastRunUser', 'group']);
         }
 
         // Apply filters

@@ -34,7 +34,12 @@ class ProfileController extends BaseController
             'per_page' => $request->per_page ?? 30
         ];
 
-        $profiles = $this->profileService->getProfiles($user, $filters);
+        $extensiveFields = $request->extensive_fields ?? [];
+        if ($extensiveFields && is_string($extensiveFields)) {
+            $extensiveFields = array_map('trim', explode(',', $extensiveFields));
+        }
+
+        $profiles = $this->profileService->getProfiles($user, $filters, $extensiveFields);
         return $this->getJsonResponse(true, 'OK', $profiles);
     }
 
