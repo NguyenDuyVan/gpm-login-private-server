@@ -6,24 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Services\AuthService;
 
 class AuthController extends BaseController
 {
-    public function login(Request $request){
-        $user = User::where('user_name', strtolower($request->user_name))
-            ->where('password', $request->password)->where('active', '<>', 0)->first();
+    protected $authService;
 
-        if ($user == null){
-            return $this->getJsonResponse(false, 'Đăng nhập thất bại', null);
-        }
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
 
-        // Remove all tokens
-        $user->tokens()->delete();
+    public function login(Request $request)
+    {
+        $result = $this->authService->login(
+            $request->user_name,
+            $request->password
+        );
 
-        // Create new token
-        $token = $user->createToken('token');
-        $resp = ['token' => $token->plainTextToken];
-
-        return $this->getJsonResponse(true, 'Đăng nhập thành công', $resp);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 }
