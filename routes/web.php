@@ -34,6 +34,7 @@ Route::post('/admin/auth', [AuthController::class, 'login']);
 
 Route::get('/admin', [AdminController::class, 'index']);
 Route::get('/admin/active-user/{id}', [AdminController::class, 'toogleActiveUser']);
+Route::get('/admin/reset-user-password/{id}', [AdminController::class, 'resetUserPassword']);
 Route::get('/admin/reset-profile-status', [AdminController::class, 'resetProfileStatus']);
 Route::get('/admin/save-setting', [AdminController::class, 'saveSetting']);
 Route::get('/admin/migration', [AdminController::class, 'runMigrations']);

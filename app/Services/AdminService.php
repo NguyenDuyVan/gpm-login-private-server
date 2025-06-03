@@ -69,6 +69,51 @@ class AdminService
     }
 
     /**
+     * Reset user password
+     *
+     * @param int $userId
+     * @return array
+     */
+    public function resetUserPassword(int $userId)
+    {
+        $user = User::find($userId);
+        if ($user == null) {
+            return ['success' => false, 'message' => 'User not found'];
+        }
+
+        // Generate a random password (8 characters)
+        $newPassword = $this->generateRandomPassword();
+
+        // Update user password (Laravel automatically hashes it via User model mutator)
+        $user->password = $newPassword;
+        $user->save();
+
+        return [
+            'success' => true,
+            'message' => "Password reset successfully for user: {$user->user_name}",
+            'newPassword' => $newPassword
+        ];
+    }
+
+    /**
+     * Generate a random password
+     *
+     * @param int $length
+     * @return string
+     */
+    private function generateRandomPassword(int $length = 8)
+    {
+        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $password = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $characters[rand(0, strlen($characters) - 1)];
+        }
+
+        return $password;
+    }
+
+    /**
      * Save system settings
      *
      * @param string $type

@@ -135,7 +135,8 @@
                     <th>User name</th>
                     <th>Display name</th>
                     <th>Active status</th>
-                    <th></th>
+                    <th>Action</th>
+                    <th>Reset Password</th>
                 </tr>
             </thead>
             <tbody>
@@ -149,6 +150,14 @@
                         $activeUrl = url('admin/active-user').'/'.$user->id;
                         @endphp
                         <a href="{{ $activeUrl }}">{{ ($user->active == 0 ? 'Active':'Deactive') }}</a>
+                    </td>
+                    <td>
+                        @php
+                        $resetPasswordUrl = url('admin/reset-user-password').'/'.$user->id;
+                        @endphp
+                        <a href="{{ $resetPasswordUrl }}"
+                           onclick="return confirm('Are you sure you want to reset password for {{ $user->user_name }}? The new password will be displayed after reset.')"
+                           style="color: #dc3545;">Reset Password</a>
                     </td>
                 </tr>
                 @endforeach

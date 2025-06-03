@@ -34,6 +34,19 @@ class AdminController extends Controller
         return redirect()->back();
     }
 
+    public function resetUserPassword($id)
+    {
+        $result = $this->adminService->resetUserPassword($id);
+
+        if ($result['success']) {
+            $message = $result['message'] . " New password: " . $result['newPassword'];
+        } else {
+            $message = $result['message'];
+        }
+
+        return redirect()->back()->with('msg', $message);
+    }
+
     public function saveSetting(Request $request)
     {
         $message = $this->adminService->saveSettings(
