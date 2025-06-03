@@ -53,8 +53,8 @@
         <h3 style="color: #0080C0">Storage setting</h3><br />
         <form action="admin/save-setting">
             <select name="type" class="form-control mb-3" onchange="handleStorageTypeChange(this)">
-                <option value="s3" @if ($storageType=='s3' ) selected @endif>S3 (setting api in .env file)</option>
-                <option value="hosting" @if ($storageType=='hosting' ) selected @endif>Hosting (Recommended for LAN)</option>
+                <option value="s3" @if ($storageType=='s3' ) selected @endif>S3 (lưu trữ trong database)</option>
+                <option value="local" @if ($storageType=='local' ) selected @endif>Local Storage (Recommended for LAN)</option>
             </select>
 
             <!-- S3 config -->

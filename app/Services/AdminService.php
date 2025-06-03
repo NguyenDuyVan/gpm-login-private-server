@@ -10,6 +10,12 @@ use stdClass;
 
 class AdminService
 {
+    protected $settingService;
+
+    public function __construct(SettingService $settingService)
+    {
+        $this->settingService = $settingService;
+    }
     /**
      * Get admin dashboard data
      *
@@ -18,38 +24,18 @@ class AdminService
      */
     public function getDashboardData(User $loginUser)
     {
+        // Initialize default settings if they don't exist
+        $this->settingService->initializeDefaultSettings();
+
         $users = User::where('id', '<>', $loginUser->id)->orderBy('role', 'desc')->get();
 
-        $storageType = 's3';
-        $setting = Setting::where('name', 'storage_type')->first();
+        // Get storage type from database
+        $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
 
-        // Create setting if not exists based on .env file
-        if ($setting == null) {
-            $setting = new Setting();
-            $setting->name = 'storage_type';
+        // Get S3 config from database
+        $s3Config = $this->settingService->getS3Config();
 
-            $apiKey = env('S3_KEY');
-            $apiSecret = env('S3_PASSWORD');
-            $apiBucket = env('S3_BUCKET');
-            $apiRegion = env('S3_REGION');
-
-            if ($apiKey != null && $apiSecret != null && $apiBucket != null && $apiRegion != null) {
-                $setting->value = 's3';
-            } else {
-                $setting->value = 'hosting';
-            }
-            $setting->save();
-        }
-
-        $storageType = $setting->value;
-
-        $s3Config = new stdClass();
-        $s3Config->S3_KEY = env('S3_KEY');
-        $s3Config->S3_PASSWORD = env('S3_PASSWORD');
-        $s3Config->S3_BUCKET = env('S3_BUCKET');
-        $s3Config->S3_REGION = env('S3_REGION');
-
-        $cache_extension_setting = Setting::where('name', 'cache_extension')->first()->value ?? "off";
+        $cache_extension_setting = $this->settingService->getSetting('cache_extension')->value ?? "off";
 
         return [
             'users' => $users,
@@ -96,34 +82,28 @@ class AdminService
     public function saveSettings(string $type, ?string $s3Key = null, ?string $s3Password = null, ?string $s3Bucket = null, ?string $s3Region = null, string $cacheExtension = 'off')
     {
         // Save storage type setting
-        $setting = Setting::where('name', 'storage_type')->first();
-        if ($setting == null) {
-            $setting = new Setting();
+        $this->settingService->setSetting('storage_type', $type);
+
+        // If storage type is local, create storage link
+        if ($type == 'local') {
+            Artisan::call('storage:link');
         }
 
-        $setting->name = 'storage_type';
-        $setting->value = $type;
-        $setting->save();
-
-        if ($setting->value == 'hosting') {
-            Artisan::call('storage:link');
-        } else if ($setting->value == 's3') {
-            $this->setEnvironmentValue('S3_KEY', $s3Key);
-            $this->setEnvironmentValue('S3_PASSWORD', $s3Password);
-            $this->setEnvironmentValue('S3_BUCKET', $s3Bucket);
-            $this->setEnvironmentValue('S3_REGION', $s3Region);
+        // Save S3 settings to database
+        if ($type == 's3') {
+            $s3Data = [
+                'S3_KEY' => $s3Key ?? '',
+                'S3_PASSWORD' => $s3Password ?? '',
+                'S3_BUCKET' => $s3Bucket ?? '',
+                'S3_REGION' => $s3Region ?? ''
+            ];
+            $this->settingService->updateS3Settings($s3Data);
         }
 
         // Save cache extension setting
-        $cache_extension_setting = Setting::where('name', 'cache_extension')->first();
-        if ($cache_extension_setting == null) {
-            $cache_extension_setting = new Setting();
-        }
-        $cache_extension_setting->name = 'cache_extension';
-        $cache_extension_setting->value = $cacheExtension;
-        $cache_extension_setting->save();
+        $this->settingService->setSetting('cache_extension', $cacheExtension);
 
-        return 'Storage type is changed to: ' . $setting->value;
+        return 'Storage type is changed to: ' . $type;
     }
 
     /**
@@ -150,23 +130,5 @@ class AdminService
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Migration failed: ' . $e->getMessage()];
         }
-    }
-
-    /**
-     * Write environment value to .env file
-     *
-     * @param string $envKey
-     * @param string $envValue
-     */
-    private function setEnvironmentValue($envKey, $envValue)
-    {
-        $envFile = app()->environmentFilePath();
-        $str = file_get_contents($envFile);
-
-        $oldValue = env($envKey);
-        $str = str_replace("{$envKey}={$oldValue}", "{$envKey}={$envValue}", $str);
-        $fp = fopen($envFile, 'w');
-        fwrite($fp, $str);
-        fclose($fp);
     }
 }

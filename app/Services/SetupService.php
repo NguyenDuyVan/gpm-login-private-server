@@ -67,6 +67,9 @@ class SetupService
             $group->created_by = $firstUser->id;
             $group->save();
 
+            // Seed default settings
+            Artisan::call('db:seed', ['--class' => 'SettingsSeeder']);
+
             // If connection is ok, write to .env file
             $this->setEnvironmentValue('DB_HOST', $host);
             $this->setEnvironmentValue('DB_PORT', $port);

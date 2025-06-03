@@ -11,17 +11,43 @@ class SettingService
     public static $server_version = 12;
 
     /**
-     * Get S3 settings from environment
+     * Initialize default settings if they don't exist
+     *
+     * @return void
+     */
+    public function initializeDefaultSettings()
+    {
+        $defaultSettings = [
+            'storage_type' => 'local',
+            's3_key' => '',
+            's3_secret' => '',
+            's3_bucket' => '',
+            's3_region' => '',
+            'cache_extension' => 'off'
+        ];
+
+        foreach ($defaultSettings as $key => $value) {
+            $setting = Setting::where('name', $key)->first();
+            if (!$setting) {
+                $this->setSetting($key, $value);
+            }
+        }
+    }
+
+    /**
+     * Get S3 settings from database
      *
      * @return array
      */
     public function getS3Settings()
     {
         try {
-            $apiKey = env('S3_KEY');
-            $apiSecret = env('S3_PASSWORD');
-            $apiBucket = env('S3_BUCKET');
-            $apiRegion = env('S3_REGION');
+            $this->initializeDefaultSettings();
+
+            $apiKey = $this->getSetting('s3_key')?->value ?? '';
+            $apiSecret = $this->getSetting('s3_secret')?->value ?? '';
+            $apiBucket = $this->getSetting('s3_bucket')?->value ?? '';
+            $apiRegion = $this->getSetting('s3_region')?->value ?? '';
 
             $settings = [
                 's3_api_key' => $apiKey,
@@ -34,6 +60,23 @@ class SettingService
         } catch (\Exception $ex) {
             return ['success' => false, 'message' => 'Chưa cài đặt đủ thông tin S3 API', 'data' => null];
         }
+    }
+
+    /**
+     * Get S3 configuration object for admin form
+     *
+     * @return object
+     */
+    public function getS3Config()
+    {
+        $this->initializeDefaultSettings();
+
+        return (object) [
+            'S3_KEY' => $this->getSetting('s3_key')?->value ?? '',
+            'S3_PASSWORD' => $this->getSetting('s3_secret')?->value ?? '',
+            'S3_BUCKET' => $this->getSetting('s3_bucket')?->value ?? '',
+            'S3_REGION' => $this->getSetting('s3_region')?->value ?? ''
+        ];
     }
 
     /**
@@ -59,32 +102,59 @@ class SettingService
     }
 
     /**
+     * Get a setting by name
+     *
+     * @param string $key
+     * @return Setting|null
+     */
+    public function getSetting(string $key)
+    {
+        return Setting::where('name', $key)->first();
+    }
+
+    /**
+     * Get a setting value by name (convenience method)
+     *
+     * @param string $key
+     * @param string|null $default
+     * @return string|null
+     */
+    public function get(string $key, $default = null)
+    {
+        $setting = $this->getSetting($key);
+        return $setting ? $setting->value : $default;
+    }
+
+    /**
+     * Update S3 settings
+     *
+     * @param array $s3Data
+     * @return array
+     */
+    public function updateS3Settings(array $s3Data)
+    {
+        try {
+            $this->setSetting('s3_key', $s3Data['S3_KEY'] ?? '');
+            $this->setSetting('s3_secret', $s3Data['S3_PASSWORD'] ?? '');
+            $this->setSetting('s3_bucket', $s3Data['S3_BUCKET'] ?? '');
+            $this->setSetting('s3_region', $s3Data['S3_REGION'] ?? '');
+
+            return ['success' => true, 'message' => 'Cập nhật S3 settings thành công'];
+        } catch (\Exception $ex) {
+            return ['success' => false, 'message' => 'Lỗi khi cập nhật S3 settings: ' . $ex->getMessage()];
+        }
+    }
+
+    /**
      * Get storage type setting
      *
      * @return array
      */
     public function getStorageTypeSetting()
     {
+        $this->initializeDefaultSettings();
+
         $setting = Setting::where('name', 'storage_type')->first();
-
-        // Create setting if not exists based on .env file
-        if ($setting == null) {
-            $setting = new Setting();
-            $setting->name = 'storage_type';
-
-            $apiKey = env('S3_KEY');
-            $apiSecret = env('S3_PASSWORD');
-            $apiBucket = env('S3_BUCKET');
-            $apiRegion = env('S3_REGION');
-
-            if ($apiKey != null && $apiSecret != null && $apiBucket != null && $apiRegion != null) {
-                $setting->value = 's3';
-            } else {
-                $setting->value = 'hosting';
-            }
-            $setting->save();
-        }
-
         return ['success' => true, 'message' => 'OK', 'data' => $setting->value];
     }
 
@@ -118,6 +188,8 @@ class SettingService
      */
     public function getAllSettings()
     {
+        $this->initializeDefaultSettings();
+
         $version = self::$server_version;
         $response = [];
 
@@ -130,29 +202,12 @@ class SettingService
             }
         }
 
-        // Get storage type setting
+        // Get settings from database
         $storage_type = Setting::where('name', 'storage_type')->first();
         $cache_extension = Setting::where('name', 'cache_extension')->first();
 
-        if ($storage_type == null) {
-            $storage_type = new Setting();
-            $storage_type->name = 'storage_type';
-
-            $apiKey = env('S3_KEY');
-            $apiSecret = env('S3_PASSWORD');
-            $apiBucket = env('S3_BUCKET');
-            $apiRegion = env('S3_REGION');
-
-            if ($apiKey != null && $apiSecret != null && $apiBucket != null && $apiRegion != null) {
-                $storage_type->value = 's3';
-            } else {
-                $storage_type->value = 'hosting';
-            }
-            $storage_type->save();
-        }
-
         $response['version'] = $version;
-        $response['storage_type'] = $storage_type->value ?? 'hosting';
+        $response['storage_type'] = $storage_type->value ?? 'local';
         $response['cache_extension'] = $cache_extension->value ?? 'off';
 
         return ['success' => true, 'message' => 'OK', 'data' => $response];
@@ -201,16 +256,5 @@ class SettingService
         }
 
         return ['success' => true, 'message' => 'Trash group ensured'];
-    }
-
-    /**
-     * Get setting by name
-     *
-     * @param string $name
-     * @return Setting|null
-     */
-    public function getSetting(string $name)
-    {
-        return Setting::where('name', $name)->first();
     }
 }
