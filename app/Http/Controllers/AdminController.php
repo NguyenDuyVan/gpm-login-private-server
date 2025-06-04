@@ -55,7 +55,7 @@ class AdminController extends Controller
             $request->S3_PASSWORD,
             $request->S3_BUCKET,
             $request->S3_REGION,
-            $request->cache_extension
+            $request->cache_extension ? 'on' : 'off'
         );
 
         return redirect()->back()->with('msg', $message);
