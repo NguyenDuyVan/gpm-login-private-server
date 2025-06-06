@@ -20,7 +20,7 @@ class AuthController extends BaseController
     public function login(Request $request)
     {
         $result = $this->authService->login(
-            $request->user_name,
+            $request->email,
             $request->password
         );
 

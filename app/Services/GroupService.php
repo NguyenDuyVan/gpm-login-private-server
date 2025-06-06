@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Group;
-use App\Models\GroupRole;
+use App\Models\GroupShare;
 use App\Models\User;
 
 class GroupService
@@ -15,22 +15,22 @@ class GroupService
      */
     public function getAllGroups()
     {
-        return Group::where('id', '!=', 0)->orderBy('sort')->get();
+        return Group::where('id', '!=', 0)->orderBy('order')->get();
     }
 
     /**
      * Create a new group
      *
      * @param string $name
-     * @param int $sort
+     * @param int $order
      * @param int $userId
      * @return Group
      */
-    public function createGroup(string $name, int $sort, int $userId)
+    public function createGroup(string $name, int $order, int $userId)
     {
         $group = new Group();
         $group->name = $name;
-        $group->sort = $sort;
+        $group->order = $order;
         $group->created_by = $userId;
         $group->save();
 
@@ -42,10 +42,11 @@ class GroupService
      *
      * @param int $id
      * @param string $name
-     * @param int $sort
+     * @param int $order
+     * @param int $updatedBy
      * @return Group|null
      */
-    public function updateGroup(int $id, string $name, int $sort)
+    public function updateGroup(int $id, string $name, int $order, int $updatedBy)
     {
         $group = Group::find($id);
 
@@ -54,7 +55,8 @@ class GroupService
         }
 
         $group->name = $name;
-        $group->sort = $sort;
+        $group->order = $order;
+        $group->updated_by = $updatedBy;
         $group->save();
 
         return $group;
@@ -94,14 +96,14 @@ class GroupService
     }
 
     /**
-     * Get group roles for a specific group
+     * Get group shares for a specific group
      *
      * @param int $groupId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getGroupRoles(int $groupId)
+    public function getGroupShares(int $groupId)
     {
-        return GroupRole::where('group_id', $groupId)
+        return GroupShare::where('group_id', $groupId)
                         ->with(['group', 'user'])
                         ->get();
     }
@@ -111,11 +113,11 @@ class GroupService
      *
      * @param int $groupId
      * @param int $userId
-     * @param int $role
+     * @param string $role
      * @param User $currentUser
      * @return array
      */
-    public function shareGroup(int $groupId, int $userId, int $role, User $currentUser)
+    public function shareGroup(int $groupId, int $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -123,43 +125,43 @@ class GroupService
             return ['success' => false, 'message' => 'User ID không tồn tại'];
         }
 
-        if ($sharedUser->role == 2) {
+        if ($sharedUser->isAdmin()) {
             return ['success' => false, 'message' => 'Không cần set quyền cho Admin'];
         }
 
         // Validate group
         $group = Group::find($groupId);
         if ($group == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại'];
+            return ['success' => false, 'message' => 'Group không tồn tại'];
         }
 
         // Check permission
-        if ($currentUser->role != 2 && $group->created_by != $currentUser->id) {
+        if (!$currentUser->isAdmin() && $group->created_by != $currentUser->id) {
             return ['success' => false, 'message' => 'Bạn phải là người tạo group'];
         }
 
-        // Handle group role
-        $groupRole = GroupRole::where('group_id', $groupId)
-                             ->where('user_id', $userId)
-                             ->first();
+        // Handle group share
+        $groupShare = GroupShare::where('group_id', $groupId)
+                               ->where('user_id', $userId)
+                               ->first();
 
-        // If role = 0, remove the role
-        if ($role == 0) {
-            if ($groupRole != null) {
-                $groupRole->delete();
+        // If role is empty or invalid, remove the share
+        if (empty($role) || !in_array($role, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
+            if ($groupShare != null) {
+                $groupShare->delete();
             }
             return ['success' => true, 'message' => 'OK'];
         }
 
-        // Create or update role
-        if ($groupRole == null) {
-            $groupRole = new GroupRole();
+        // Create or update share
+        if ($groupShare == null) {
+            $groupShare = new GroupShare();
         }
 
-        $groupRole->group_id = $groupId;
-        $groupRole->user_id = $userId;
-        $groupRole->role = $role;
-        $groupRole->save();
+        $groupShare->group_id = $groupId;
+        $groupShare->user_id = $userId;
+        $groupShare->role = $role;
+        $groupShare->save();
 
         return ['success' => true, 'message' => 'OK'];
     }
@@ -172,7 +174,70 @@ class GroupService
      */
     public function hasAdminPermission(User $user)
     {
-        return $user->role >= 2;
+        return $user->isAdmin();
+    }
+
+    /**
+     * Check if user can access group
+     *
+     * @param int $groupId
+     * @param User $user
+     * @return bool
+     */
+    public function canAccessGroup(int $groupId, User $user)
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return false;
+        }
+
+        // Check if user is the creator
+        if ($group->created_by == $user->id) {
+            return true;
+        }
+
+        // Check group shares
+        $groupShare = GroupShare::where('group_id', $groupId)
+                               ->where('user_id', $user->id)
+                               ->first();
+
+        return $groupShare !== null;
+    }
+
+    /**
+     * Check if user can modify group
+     *
+     * @param int $groupId
+     * @param User $user
+     * @return bool
+     */
+    public function canModifyGroup(int $groupId, User $user)
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return false;
+        }
+
+        // Check if user is the creator
+        if ($group->created_by == $user->id) {
+            return true;
+        }
+
+        // Check group shares with FULL access
+        $groupShare = GroupShare::where('group_id', $groupId)
+                               ->where('user_id', $user->id)
+                               ->where('role', GroupShare::ROLE_FULL)
+                               ->first();
+
+        return $groupShare !== null;
     }
 
     /**

@@ -20,7 +20,7 @@ class AdminController extends Controller
     public function index()
     {
         $loginUser = Auth::user();
-        if ($loginUser == null || $loginUser->role != 2) {
+        if ($loginUser == null || $loginUser->system_role === User::ROLE_USER) {
             return redirect('/admin/auth');
         }
 

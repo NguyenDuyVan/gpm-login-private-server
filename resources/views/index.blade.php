@@ -132,7 +132,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>User name</th>
+                    <th>Email</th>
                     <th>Display name</th>
                     <th>Active status</th>
                     <th>Action</th>
@@ -142,7 +142,7 @@
             <tbody>
                 @foreach ($users as $user)
                 <tr>
-                    <td>{{ $user->user_name }}</td>
+                    <td>{{ $user->email }}</td>
                     <td>{{ $user->display_name }}</td>
                     <td>{{ ($user->active == 0 ? 'Deactivated':'Actived') }}</td>
                     <td>

@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Profile;
 use App\Models\Group;
-use App\Models\GroupRole;
-use App\Models\ProfileRole;
+use App\Models\GroupShare;
+use App\Models\ProfileShare;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,34 +21,38 @@ class ProfileService
      */
     public function getProfiles(User $user, array $filters = [], array $extensiveFields = [])
     {
-        $selectFields = ['id', 'name', 's3_path', 'cookie_data', 'group_id', 'created_by', 'status', 'last_run_at', 'last_run_by', 'created_at', 'updated_at'];
+        $selectFields = ['id', 'name', 'storage_path', 'meta_data', 'group_id', 'created_by', 'status', 'last_run_at', 'last_run_by', 'created_at', 'updated_at'];
         // Add extensive fields if provided, avoid duplicates
         if (count($extensiveFields) > 0) {
             foreach ($extensiveFields as $field) {
-            if (!in_array($field, $selectFields)) {
-                $selectFields[] = $field;
-            }
+                if (!in_array($field, $selectFields)) {
+                    $selectFields[] = $field;
+                }
             }
         }
-        // Default, show all profiles, exclude json_data field
-        $query = Profile::select($selectFields)
-                        ->with(['createdUser', 'lastRunUser', 'group']);
 
-        // If user isn't admin, show by role
-        if ($user->role < 2) {
-            $ids_group_share = DB::table('group_roles')->where('user_id', $user->id)->pluck('group_id');
+        // Default, show all active profiles (not soft deleted)
+        $query = Profile::active()
+                        ->select($selectFields)
+                        ->with(['creator', 'lastRunUser', 'group']);
 
-            $query = Profile::select($selectFields)
-                ->whereIn('id', function ($subQuery) use ($user, $ids_group_share) {
+        // If user isn't admin, show by permissions
+        if (!$user->isAdmin()) {
+            $groupShareIds = DB::table('group_shares')->where('user_id', $user->id)->pluck('group_id');
+
+            $query = Profile::active()
+                ->select($selectFields)
+                ->whereIn('id', function ($subQuery) use ($user, $groupShareIds) {
                     $subQuery->select('profiles.id')
                         ->from('profiles')
-                        ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
-                        ->where(function($q) use ($user, $ids_group_share) {
-                            $q->where('profile_roles.user_id', $user->id)
-                              ->orWhereIn('profiles.group_id', $ids_group_share);
+                        ->join('profile_shares', 'profiles.id', '=', 'profile_shares.profile_id')
+                        ->where(function($q) use ($user, $groupShareIds) {
+                            $q->where('profile_shares.user_id', $user->id)
+                              ->orWhereIn('profiles.group_id', $groupShareIds)
+                              ->orWhere('profiles.created_by', $user->id);
                         });
                 })
-                ->with(['createdUser', 'lastRunUser', 'group']);
+                ->with(['creator', 'lastRunUser', 'group']);
         }
 
         // Apply filters
@@ -69,7 +73,7 @@ class ProfileService
     private function applyFilters($query, User $user, array $filters)
     {
         // Filter by group
-        if (isset($filters['group_id']) && $filters['group_id'] != Group::where('name', 'All')->first()->id) {
+        if (isset($filters['group_id']) && $filters['group_id'] != Group::where('name', 'All')->first()?->id) {
             $query->where('group_id', $filters['group_id']);
         } else {
             $query->where('group_id', '!=', 0); // exclude trash
@@ -100,13 +104,9 @@ class ProfileService
         // Filter by tags
         if (isset($filters['tags'])) {
             $tags = explode(",", $filters['tags']);
-            foreach ($tags as $tag) {
-                if ($tag == $tags[0]) {
-                    $query->whereJsonContains('json_data->Tags', $tag);
-                } else {
-                    $query->orWhereJsonContains('json_data->Tags', $tag);
-                }
-            }
+            $query->whereHas('tags', function($q) use ($tags) {
+                $q->whereIn('name', $tags);
+            });
         }
 
         // Sort
@@ -132,35 +132,36 @@ class ProfileService
      * Create a new profile
      *
      * @param string $name
-     * @param string $s3Path
-     * @param string $jsonData
-     * @param string|null $cookieData
+     * @param string $storagePath
+     * @param array $jsonData
+     * @param array|null $metaData
      * @param int $groupId
      * @param int $userId
+     * @param string $storageType
      * @return Profile
      */
-    public function createProfile(string $name, string $s3Path, string $jsonData, ?string $cookieData, int $groupId, int $userId)
+    public function createProfile(string $name, string $storagePath, array $jsonData, ?array $metaData, int $groupId, int $userId, string $storageType = Profile::STORAGE_S3)
     {
         $profile = new Profile();
         $profile->name = $name;
-        $profile->s3_path = $s3Path;
+        $profile->storage_type = $storageType;
+        $profile->storage_path = $storagePath;
         $profile->json_data = $jsonData;
-        $profile->cookie_data = $cookieData ?? '[]';
+        $profile->meta_data = $metaData ?? [];
         $profile->group_id = $groupId;
         $profile->created_by = $userId;
-        $profile->status = 1;
-        $profile->last_run_at = null;
-        $profile->last_run_by = null;
+        $profile->status = Profile::STATUS_READY;
+        $profile->usage_count = 0;
         $profile->save();
 
-        // Create profile role for creator
-        $profileRole = new ProfileRole();
-        $profileRole->profile_id = $profile->id;
-        $profileRole->user_id = $userId;
-        $profileRole->role = 2;
-        $profileRole->save();
+        // Create profile share for creator with FULL access
+        $profileShare = new ProfileShare();
+        $profileShare->profile_id = $profile->id;
+        $profileShare->user_id = $userId;
+        $profileShare->role = ProfileShare::ROLE_FULL;
+        $profileShare->save();
 
-        return Profile::where('id', $profile->id)->with(['createdUser', 'lastRunUser', 'group'])->first();
+        return Profile::where('id', $profile->id)->with(['creator', 'lastRunUser', 'group'])->first();
     }
 
     /**
@@ -176,7 +177,7 @@ class ProfileService
             return ['success' => false, 'message' => 'Không đủ quyền với profile', 'data' => null];
         }
 
-        $profile = Profile::find($id);
+        $profile = Profile::active()->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
         }
@@ -189,30 +190,30 @@ class ProfileService
      *
      * @param int $id
      * @param string $name
-     * @param string $s3Path
-     * @param string $jsonData
-     * @param string $cookieData
+     * @param string $storagePath
+     * @param array $jsonData
+     * @param array $metaData
      * @param int $groupId
      * @param string|null $lastRunAt
      * @param int|null $lastRunBy
      * @param User $user
      * @return array
      */
-    public function updateProfile(int $id, string $name, string $s3Path, string $jsonData, string $cookieData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
+    public function updateProfile(int $id, string $name, string $storagePath, array $jsonData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
             return ['success' => false, 'message' => 'Không đủ quyền sửa profile', 'data' => null];
         }
 
-        $profile = Profile::find($id);
+        $profile = Profile::active()->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
         }
 
         $profile->name = $name;
-        $profile->s3_path = $s3Path;
+        $profile->storage_path = $storagePath;
         $profile->json_data = $jsonData;
-        $profile->cookie_data = $cookieData;
+        $profile->meta_data = $metaData;
         $profile->group_id = $groupId;
         $profile->last_run_at = $lastRunAt;
         $profile->last_run_by = $lastRunBy;
@@ -222,7 +223,7 @@ class ProfileService
     }
 
     /**
-     * Update profile status
+     * Update profile status and track usage
      *
      * @param int $id
      * @param int $status
@@ -235,26 +236,27 @@ class ProfileService
             return ['success' => false, 'message' => 'Không đủ quyền update trạng thái profile', 'data' => null];
         }
 
-        $profile = Profile::find($id);
+        $profile = Profile::active()->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
         }
 
-        $profile->status = $status;
-
-        // If user run profile, update last run data
-        if ($status == 2) {
-            $profile->last_run_at = Carbon::now();
-            $profile->last_run_by = $user->id;
+        // If user starts using profile
+        if ($status == Profile::STATUS_IN_USE) {
+            $profile->markAsInUse($user);
+            $profile->recordUsage($user);
+        } else if ($status == Profile::STATUS_READY) {
+            $profile->markAsReady();
+        } else {
+            $profile->status = $status;
+            $profile->save();
         }
-
-        $profile->save();
 
         return ['success' => true, 'message' => 'Thành công', 'data' => null];
     }
 
     /**
-     * Delete profile
+     * Soft delete profile
      *
      * @param int $id
      * @param User $user
@@ -266,27 +268,49 @@ class ProfileService
             return ['success' => false, 'message' => 'Không đủ quyền xóa profile', 'data' => null];
         }
 
-        $profile = Profile::find($id);
+        $profile = Profile::active()->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
         }
 
-        $profileRoles = ProfileRole::where('profile_id', $id);
-        $profileRoles->delete();
-        $profile->delete();
+        // Soft delete the profile
+        $profile->softDelete($user);
 
         return ['success' => true, 'message' => 'Xóa thành công', 'data' => null];
     }
 
     /**
-     * Get profile roles
+     * Restore soft deleted profile
+     *
+     * @param int $id
+     * @param User $user
+     * @return array
+     */
+    public function restoreProfile(int $id, User $user)
+    {
+        if (!$user->isAdmin() && !$user->isModerator()) {
+            return ['success' => false, 'message' => 'Không đủ quyền khôi phục profile', 'data' => null];
+        }
+
+        $profile = Profile::deleted()->find($id);
+        if ($profile == null) {
+            return ['success' => false, 'message' => 'Profile không tồn tại trong thùng rác', 'data' => null];
+        }
+
+        $profile->restore();
+
+        return ['success' => true, 'message' => 'Khôi phục thành công', 'data' => null];
+    }
+
+    /**
+     * Get profile shares
      *
      * @param int $profileId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getProfileRoles(int $profileId)
+    public function getProfileShares(int $profileId)
     {
-        return ProfileRole::where('profile_id', $profileId)
+        return ProfileShare::where('profile_id', $profileId)
                          ->with(['profile', 'user'])
                          ->get();
     }
@@ -296,11 +320,11 @@ class ProfileService
      *
      * @param int $profileId
      * @param int $userId
-     * @param int $role
+     * @param string $role
      * @param User $currentUser
      * @return array
      */
-    public function shareProfile(int $profileId, int $userId, int $role, User $currentUser)
+    public function shareProfile(int $profileId, int $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -308,43 +332,43 @@ class ProfileService
             return ['success' => false, 'message' => 'User ID không tồn tại', 'data' => null];
         }
 
-        if ($sharedUser->role == 2) {
+        if ($sharedUser->isAdmin()) {
             return ['success' => false, 'message' => 'Không cần set quyền cho Admin', 'data' => null];
         }
 
         // Validate profile
-        $profile = Profile::find($profileId);
+        $profile = Profile::active()->find($profileId);
         if ($profile == null) {
             return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
         }
 
         // Check permission
-        if ($currentUser->role != 2 && $profile->created_by != $currentUser->id) {
+        if (!$currentUser->isAdmin() && $profile->created_by != $currentUser->id) {
             return ['success' => false, 'message' => 'Bạn phải là người tạo profile', 'data' => null];
         }
 
-        // Handle profile role
-        $profileRole = ProfileRole::where('profile_id', $profileId)
-                                 ->where('user_id', $userId)
-                                 ->first();
+        // Handle profile share
+        $profileShare = ProfileShare::where('profile_id', $profileId)
+                                   ->where('user_id', $userId)
+                                   ->first();
 
-        // If role = 0, remove the role
-        if ($role == 0) {
-            if ($profileRole != null) {
-                $profileRole->delete();
+        // If role is empty or invalid, remove the share
+        if (empty($role) || !in_array($role, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT, ProfileShare::ROLE_VIEW])) {
+            if ($profileShare != null) {
+                $profileShare->delete();
             }
             return ['success' => true, 'message' => 'OK', 'data' => null];
         }
 
-        // Create or update role
-        if ($profileRole == null) {
-            $profileRole = new ProfileRole();
+        // Create or update share
+        if ($profileShare == null) {
+            $profileShare = new ProfileShare();
         }
 
-        $profileRole->profile_id = $profileId;
-        $profileRole->user_id = $userId;
-        $profileRole->role = $role;
-        $profileRole->save();
+        $profileShare->profile_id = $profileId;
+        $profileShare->user_id = $userId;
+        $profileShare->role = $role;
+        $profileShare->save();
 
         return ['success' => true, 'message' => 'OK', 'data' => null];
     }
@@ -356,7 +380,7 @@ class ProfileService
      */
     public function getTotalProfiles()
     {
-        return Profile::count();
+        return Profile::active()->count();
     }
 
     /**
@@ -368,25 +392,39 @@ class ProfileService
      */
     public function canModifyProfile(int $profileId, User $logonUser)
     {
-        if ($logonUser->role >= 2) {
+        if ($logonUser->isAdmin()) {
             return true; // Admin can modify all
         }
 
-        $profileRole = ProfileRole::where('user_id', $logonUser->id)
-                                 ->where('profile_id', $profileId)
-                                 ->first();
+        $profile = Profile::active()->find($profileId);
+        if (!$profile) {
+            return false;
+        }
 
-        if ($profileRole != null && $profileRole->role == 2) {
+        // Check if user is the creator
+        if ($profile->created_by == $logonUser->id) {
             return true;
         }
 
-        // Check group role
-        $profile = Profile::find($profileId);
-        if ($profile != null) {
-            $groupRole = GroupRole::where('user_id', $logonUser->id)
-                                 ->where('group_id', $profile->group_id)
-                                 ->first();
-            return $groupRole != null && $groupRole->role == 2;
+        // Check profile shares with FULL access
+        $profileShare = ProfileShare::where('user_id', $logonUser->id)
+                                   ->where('profile_id', $profileId)
+                                   ->where('role', ProfileShare::ROLE_FULL)
+                                   ->first();
+
+        if ($profileShare != null) {
+            return true;
+        }
+
+        // Check group shares with FULL access
+        if ($profile->group) {
+            $groupShare = GroupShare::where('user_id', $logonUser->id)
+                                  ->where('group_id', $profile->group_id)
+                                  ->where('role', GroupShare::ROLE_FULL)
+                                  ->first();
+            if ($groupShare != null) {
+                return true;
+            }
         }
 
         return false;
@@ -401,27 +439,51 @@ class ProfileService
      */
     public function canAccessProfile(int $profileId, User $logonUser)
     {
-        if ($logonUser->role >= 2) {
+        if ($logonUser->isAdmin()) {
             return true; // Admin can access all
         }
 
-        $profileRole = ProfileRole::where('user_id', $logonUser->id)
-                                 ->where('profile_id', $profileId)
-                                 ->first();
+        $profile = Profile::active()->find($profileId);
+        if (!$profile) {
+            return false;
+        }
 
-        if ($profileRole != null) {
+        // Check if user is the creator
+        if ($profile->created_by == $logonUser->id) {
             return true;
         }
 
-        // Check group role
-        $profile = Profile::find($profileId);
-        if ($profile != null) {
-            $groupRole = GroupRole::where('user_id', $logonUser->id)
-                                 ->where('group_id', $profile->group_id)
-                                 ->first();
-            return $groupRole != null;
+        // Check profile shares
+        $profileShare = ProfileShare::where('user_id', $logonUser->id)
+                                   ->where('profile_id', $profileId)
+                                   ->first();
+
+        if ($profileShare != null) {
+            return true;
+        }
+
+        // Check group shares
+        if ($profile->group) {
+            $groupShare = GroupShare::where('user_id', $logonUser->id)
+                                  ->where('group_id', $profile->group_id)
+                                  ->first();
+            if ($groupShare != null) {
+                return true;
+            }
         }
 
         return false;
+    }
+
+    /**
+     * Legacy method for backward compatibility - Get profile roles
+     * This method maps to the new profile shares system
+     *
+     * @param int $profileId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getProfileRoles(int $profileId)
+    {
+        return $this->getProfileShares($profileId);
     }
 }

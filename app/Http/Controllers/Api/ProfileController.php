@@ -55,11 +55,12 @@ class ProfileController extends BaseController
 
         $result = $this->profileService->createProfile(
             $request->name,
-            $request->s3_path,
+            $request->storage_path,
             $request->json_data,
             $request->cookie_data,
             $request->group_id,
-            $user->id
+            $user->id,
+            $request->storage_type ?? 'S3'
         );
 
         return $this->getJsonResponse(true, 'Thành công', $result);
@@ -92,12 +93,11 @@ class ProfileController extends BaseController
         $result = $this->profileService->updateProfile(
             $id,
             $request->name,
-            $request->s3_path,
+            $request->storage_path,
             $request->json_data,
             $request->cookie_data,
             $request->group_id,
-            $request->last_run_at,
-            $request->last_run_by,
+            $request->storage_type ?? null,
             $user
         );
 
@@ -140,12 +140,12 @@ class ProfileController extends BaseController
     }
 
     /**
-     * Get list of users role
+     * Get list of users share
      */
-    public function getProfileRoles($id)
+    public function getProfileShares($id)
     {
-        $profileRoles = $this->profileService->getProfileRoles($id);
-        return $this->getJsonResponse(true, 'OK', $profileRoles);
+        $profileShares = $this->profileService->getProfileShares($id);
+        return $this->getJsonResponse(true, 'OK', $profileShares);
     }    /**
      * Share profile
      *
@@ -175,6 +175,71 @@ class ProfileController extends BaseController
     {
         $total = $this->profileService->getTotalProfiles();
         return $this->getJsonResponse(true, 'OK', ['total' => $total]);
+    }
+
+    /**
+     * Start using profile
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function startUsing($id, Request $request)
+    {
+        $user = $request->user();
+        $result = $this->profileService->startUsingProfile($id, $user->id);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    /**
+     * Stop using profile
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function stopUsing($id, Request $request)
+    {
+        $user = $request->user();
+        $result = $this->profileService->stopUsingProfile($id, $user->id);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    /**
+     * Add tags to profile
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function addTags($id, Request $request)
+    {
+        $user = $request->user();
+        $result = $this->profileService->addTagsToProfile($id, $request->tags, $user);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    /**
+     * Remove tags from profile
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function removeTags($id, Request $request)
+    {
+        $user = $request->user();
+        $result = $this->profileService->removeTagsFromProfile($id, $request->tags, $user);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    /**
+     * Restore deleted profile
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function restore($id, Request $request)
+    {
+        $user = $request->user();
+        $result = $this->profileService->restoreProfile($id, $user);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
 }

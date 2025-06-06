@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Profile;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use stdClass;
 
 class AdminService
@@ -27,7 +28,7 @@ class AdminService
         // Initialize default settings if they don't exist
         $this->settingService->initializeDefaultSettings();
 
-        $users = User::where('id', '<>', $loginUser->id)->orderBy('role', 'desc')->get();
+        $users = User::where('id', '<>', $loginUser->id)->get();
 
         // Get storage type from database
         $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
@@ -58,13 +59,10 @@ class AdminService
             return false;
         }
 
-        if ($user->active == 0) {
-            $user->active = 1;
-        } else if ($user->active == 1) {
-            $user->active = 0;
-        }
-
+        // Toggle the is_active status
+        $user->is_active = !$user->is_active;
         $user->save();
+
         return true;
     }
 
@@ -85,12 +83,12 @@ class AdminService
         $newPassword = $this->generateRandomPassword();
 
         // Update user password (Laravel automatically hashes it via User model mutator)
-        $user->password = $newPassword;
+        $user['password'] = $newPassword;
         $user->save();
 
         return [
             'success' => true,
-            'message' => "Password reset successfully for user: {$user->user_name}",
+            'message' => "Password reset successfully for user: {$user->email}",
             'newPassword' => $newPassword
         ];
     }
@@ -152,13 +150,17 @@ class AdminService
     }
 
     /**
-     * Reset all profile statuses to 1
+     * Reset all profile statuses to ready (not in use)
      *
      * @return bool
      */
     public function resetProfileStatuses()
     {
-        Profile::query()->update(['status' => 1]);
+        // Reset all profiles to ready status and clear usage
+        Profile::query()->update([
+            'status' => Profile::STATUS_READY,
+            'using_by' => null
+        ]);
         return true;
     }
 

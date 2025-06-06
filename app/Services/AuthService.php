@@ -9,15 +9,15 @@ class AuthService
     /**
      * Authenticate user and generate token
      *
-     * @param string $userName
+     * @param string $email
      * @param string $password
      * @return array
      */
-    public function login(string $userName, string $password)
+    public function login(string $email, string $password)
     {
-        $user = User::where('user_name', strtolower($userName))
+        $user = User::where('email', strtolower($email))
             ->where('password', $password)
-            ->where('active', '<>', 0)
+            ->where('is_active', true)
             ->first();
 
         if ($user == null) {

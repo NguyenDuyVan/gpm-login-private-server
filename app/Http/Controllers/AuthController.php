@@ -16,7 +16,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $result = $this->webAuthService->login($request->username, $request->password);
+        $result = $this->webAuthService->login($request->email, $request->password);
 
         if (!$result['success']) {
             return redirect()->back()->with('error', $result['message']);

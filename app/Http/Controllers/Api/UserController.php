@@ -37,7 +37,7 @@ class UserController extends BaseController
     public function store(Request $request)
     {
         $result = $this->userService->createUser(
-            $request->user_name,
+            $request->email,
             $request->display_name,
             $request->password
         );
@@ -56,7 +56,7 @@ class UserController extends BaseController
         $result = $this->userService->updateUser(
             $request->user()->id,
             $request->display_name,
-            $request->role ?? null,
+            $request->system_role ?? null,
             $request->new_password ?? null
         );
 

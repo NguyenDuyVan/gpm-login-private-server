@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
 use App\Models\Group;
-use App\Models\GroupRole;
+use App\Models\GroupShare;
 use App\Models\User;
 use App\Services\GroupService;
 
@@ -44,7 +44,7 @@ class GroupController extends BaseController
 
         $group = $this->groupService->createGroup(
             $request->name,
-            $request->sort,
+            $request->order,
             $user->id
         );
 
@@ -79,7 +79,7 @@ class GroupController extends BaseController
         $group = $this->groupService->updateGroup(
             $id,
             $request->name,
-            $request->sort
+            $request->order
         );
 
         if ($group == null)
@@ -118,12 +118,12 @@ class GroupController extends BaseController
     }
 
     /**
-     * Get list of users role
+     * Get list of users share
      */
-    public function getGroupRoles($id)
+    public function getGroupShares($id)
     {
-        $groupRoles = $this->groupService->getGroupRoles($id);
-        return $this->getJsonResponse(true, 'OK', $groupRoles);
+        $groupShares = $this->groupService->getGroupShares($id);
+        return $this->getJsonResponse(true, 'OK', $groupShares);
     }
 
     public function share($id, Request $request)
