@@ -53,8 +53,8 @@
         <h3 style="color: #0080C0">Storage setting</h3><br />
         <form action="admin/save-setting">
             <select name="type" class="form-control mb-3" onchange="handleStorageTypeChange(this)">
-                <option value="s3" @if ($storageType=='s3' ) selected @endif>S3 (setting api in .env file)</option>
-                <option value="hosting" @if ($storageType=='hosting' ) selected @endif>Hosting (Recommended for LAN)</option>
+                <option value="s3" @if ($storageType=='s3' ) selected @endif>S3 (lưu trữ trong database)</option>
+                <option value="local" @if ($storageType=='local' ) selected @endif>Local Storage (Recommended for LAN)</option>
             </select>
 
             <!-- S3 config -->
@@ -132,16 +132,17 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>User name</th>
+                    <th>Email</th>
                     <th>Display name</th>
                     <th>Active status</th>
-                    <th></th>
+                    <th>Action</th>
+                    <th>Reset Password</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($users as $user)
                 <tr>
-                    <td>{{ $user->user_name }}</td>
+                    <td>{{ $user->email }}</td>
                     <td>{{ $user->display_name }}</td>
                     <td>{{ ($user->active == 0 ? 'Deactivated':'Actived') }}</td>
                     <td>
@@ -149,6 +150,14 @@
                         $activeUrl = url('admin/active-user').'/'.$user->id;
                         @endphp
                         <a href="{{ $activeUrl }}">{{ ($user->active == 0 ? 'Active':'Deactive') }}</a>
+                    </td>
+                    <td>
+                        @php
+                        $resetPasswordUrl = url('admin/reset-user-password').'/'.$user->id;
+                        @endphp
+                        <a href="{{ $resetPasswordUrl }}"
+                           onclick="return confirm('Are you sure you want to reset password for {{ $user->user_name }}? The new password will be displayed after reset.')"
+                           style="color: #dc3545;">Reset Password</a>
                     </td>
                 </tr>
                 @endforeach

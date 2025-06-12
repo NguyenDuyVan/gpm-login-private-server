@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\BaseController;
+use Illuminate\Http\Request;
+use App\Models\Tag;
+use App\Services\TagService;
+
+class TagController extends BaseController
+{
+    protected $tagService;
+
+    public function __construct(TagService $tagService)
+    {
+        $this->tagService = $tagService;
+    }
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        $tags = $this->tagService->getAllTags();
+        return $this->getJsonResponse(true, 'OK', $tags);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        $user = $request->user();
+
+        $result = $this->tagService->createTag(
+            $request->name,
+            $request->color ?? '#007bff',
+            $user->id
+        );
+
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        $tag = $this->tagService->getTag($id);
+        return $this->getJsonResponse(true, 'OK', $tag);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $result = $this->tagService->updateTag(
+            $id,
+            $request->name,
+            $request->color,
+            $user
+        );
+
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id, Request $request)
+    {
+        $user = $request->user();
+        $result = $this->tagService->deleteTag($id, $user);
+        return $this->getJsonResponse($result['success'], $result['message'], null);
+    }
+
+    /**
+     * Get tags with profile count
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getTagsWithCount()
+    {
+        $tags = $this->tagService->getTagsWithProfileCount();
+        return $this->getJsonResponse(true, 'OK', $tags);
+    }
+}

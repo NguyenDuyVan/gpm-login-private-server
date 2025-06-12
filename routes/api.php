@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\ProxyController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UploadController;
@@ -49,7 +51,7 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::get('/delete/{id}', [GroupController::class, 'destroy']);
         Route::get('/share/{id}', [GroupController::class, 'share']);
-        Route::get('/roles/{id}', [GroupController::class, 'getGroupRoles']);
+        Route::get('/shares/{id}', [GroupController::class, 'getGroupShares']);
     });
 
     Route::prefix('profiles')->group(function () {
@@ -61,7 +63,12 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::get('/update-status/{id}', [ProfileController::class, 'updateStatus']);
         Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::get('/share/{id}', [ProfileController::class, 'share']);
-        Route::get('/roles/{id}', [ProfileController::class, 'getProfileRoles']);
+        Route::get('/shares/{id}', [ProfileController::class, 'getProfileShares']);
+        Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
+        Route::post('/stop-using/{id}', [ProfileController::class, 'stopUsing']);
+        Route::post('/add-tags/{id}', [ProfileController::class, 'addTags']);
+        Route::post('/remove-tags/{id}', [ProfileController::class, 'removeTags']);
+        Route::post('/restore/{id}', [ProfileController::class, 'restore']);
     });
 
     Route::prefix('settings')->group(function () {
@@ -70,5 +77,27 @@ Route::middleware(['auth:sanctum'])->group(function(){
 
     Route::post('file/upload', [UploadController::class, 'store']);
     Route::get('file/delete', [UploadController::class, 'delete']);
+    Route::get('file/upload-s3', [UploadController::class, 'uploadS3']);
+    
+    Route::prefix('tags')->group(function () {
+        Route::get('/', [TagController::class, 'index']);
+        Route::get('/with-count', [TagController::class, 'getTagsWithCount']);
+        Route::get('/{id}', [TagController::class, 'show']);
+        Route::post('/create', [TagController::class, 'store']);
+        Route::post('/update/{id}', [TagController::class, 'update']);
+        Route::get('/delete/{id}', [TagController::class, 'destroy']);
+    });
+
+    Route::prefix('proxies')->group(function () {
+        Route::get('/', [ProxyController::class, 'index']);
+        Route::get('/{id}', [ProxyController::class, 'show']);
+        Route::post('/create', [ProxyController::class, 'store']);
+        Route::post('/update/{id}', [ProxyController::class, 'update']);
+        Route::get('/delete/{id}', [ProxyController::class, 'destroy']);
+        Route::post('/toggle-status/{id}', [ProxyController::class, 'toggleStatus']);
+        Route::post('/add-tags/{id}', [ProxyController::class, 'addTags']);
+        Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
+        Route::post('/test-connection/{id}', [ProxyController::class, 'testConnection']);
+    });
 });
 
