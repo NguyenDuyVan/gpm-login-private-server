@@ -15,7 +15,7 @@ class GroupService
      */
     public function getAllGroups()
     {
-        return Group::where('id', '!=', 0)->orderBy('order')->get();
+        return Group::where('id', '!=', 0)->orderBy('sort_order')->get();
     }
 
     /**
@@ -30,7 +30,7 @@ class GroupService
     {
         $group = new Group();
         $group->name = $name;
-        $group->order = $order;
+        $group->sort_order = $order;
         $group->created_by = $userId;
         $group->save();
 
@@ -55,7 +55,7 @@ class GroupService
         }
 
         $group->name = $name;
-        $group->order = $order;
+        $group->sort_order = $order;
         $group->updated_by = $updatedBy;
         $group->save();
 

@@ -79,7 +79,8 @@ class GroupController extends BaseController
         $group = $this->groupService->updateGroup(
             $id,
             $request->name,
-            $request->order
+            $request->order,
+            $user->id
         );
 
         if ($group == null)

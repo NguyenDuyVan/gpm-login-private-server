@@ -55,6 +55,7 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::get('/delete/{id}', [GroupController::class, 'destroy']);
         Route::get('/share/{id}', [GroupController::class, 'share']);
+        Route::get('/roles/{id}', [GroupController::class, 'getGroupShares']);
         Route::get('/shares/{id}', [GroupController::class, 'getGroupShares']);
     });
 
@@ -67,6 +68,7 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::get('/update-status/{id}', [ProfileController::class, 'updateStatus']);
         Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::get('/share/{id}', [ProfileController::class, 'share']);
+        Route::get('/roles/{id}', [ProfileController::class, 'getProfileShares']);
         Route::get('/shares/{id}', [ProfileController::class, 'getProfileShares']);
         Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
         Route::post('/stop-using/{id}', [ProfileController::class, 'stopUsing']);
