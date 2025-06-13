@@ -134,15 +134,7 @@ class UploadService
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
                 $fullLocation = 'profiles/' . $fileName;
-                if (Storage::disk('s3')->exists($fullLocation)) {
-                    Storage::disk('s3')->delete($fullLocation);
-                } else {
-                    return [
-                        'success' => false,
-                        'message' => 'File không tồn tại',
-                        'data' => []
-                    ];
-                }
+                Storage::disk('s3')->delete($fullLocation);
             } else {
                 $fullLocation = 'public/profiles/' . $fileName;
                 Storage::delete($fullLocation);
