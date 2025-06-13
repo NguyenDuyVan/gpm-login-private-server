@@ -77,13 +77,11 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::post('/restore/{id}', [ProfileController::class, 'restore']);
     });
 
-    Route::prefix('settings')->group(function () {
-        Route::get('/set-s3-api', [SettingController::class, 'setS3Setting']);
+    Route::prefix('file')->group(function () {
+        Route::post('upload', [UploadController::class, 'store']);
+        Route::get('delete', [UploadController::class, 'delete']);
+        Route::post('upload-s3', [UploadController::class, 'uploadS3']);
     });
-
-    Route::post('file/upload', [UploadController::class, 'store']);
-    Route::get('file/delete', [UploadController::class, 'delete']);
-    Route::get('file/upload-s3', [UploadController::class, 'uploadS3']);
     
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagController::class, 'index']);
