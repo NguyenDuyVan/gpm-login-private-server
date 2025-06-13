@@ -10,7 +10,7 @@ use App\Services\SettingService;
 
 class SettingController extends BaseController
 {
-    public static $server_version = 12;
+    public static $server_version = 13;
     protected $settingService;
 
     public function __construct(SettingService $settingService)
