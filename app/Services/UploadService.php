@@ -103,15 +103,17 @@ class UploadService
      */
     private function configureS3FromDatabase()
     {
+        $s3UploadService = new S3UploadService($this->settingService);
         $s3Key = $this->settingService->getSetting('s3_key')->value ?? '';
         $s3Secret = $this->settingService->getSetting('s3_secret')->value ?? '';
         $s3Bucket = $this->settingService->getSetting('s3_bucket')->value ?? '';
-        $s3Region = $this->settingService->getSetting('s3_region')->value ?? '';
+        $s3Region = $s3UploadService->getS3RegionCode($this->settingService->getSetting('s3_region')->value ?? '');
 
         config(['filesystems.disks.s3.key' => $s3Key]);
         config(['filesystems.disks.s3.secret' => $s3Secret]);
         config(['filesystems.disks.s3.bucket' => $s3Bucket]);
         config(['filesystems.disks.s3.region' => $s3Region]);
+        // config(['filesystems.disks.s3.url' => $s3Url]);
     }
 
     /**
@@ -132,7 +134,15 @@ class UploadService
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
                 $fullLocation = 'profiles/' . $fileName;
-                Storage::disk('s3')->delete($fullLocation);
+                if (Storage::disk('s3')->exists($fullLocation)) {
+                    Storage::disk('s3')->delete($fullLocation);
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'File không tồn tại',
+                        'data' => []
+                    ];
+                }
             } else {
                 $fullLocation = 'public/profiles/' . $fileName;
                 Storage::delete($fullLocation);
@@ -147,7 +157,7 @@ class UploadService
             return [
                 'success' => false,
                 'message' => 'Thất bại',
-                'data' => $ex
+                'data' => $ex->getMessage()
             ];
         }
     }

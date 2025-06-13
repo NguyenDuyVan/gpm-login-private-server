@@ -16,7 +16,7 @@ class S3UploadService
         $this->settingService = $settingService;
     }
 
-    function getS3RegionCode($s3Region)
+    public function getS3RegionCode($s3Region)
     {
         if($s3Region == 'AFSouth1') return 'af-south-1';
         if($s3Region == 'APEast1') return 'ap-east-1';
@@ -55,7 +55,7 @@ class S3UploadService
 
         // Tạo tên file duy nhất
         // Key S3
-        $key = 'uploads/' . $fileName;
+        $key = 'profiles/' . $fileName;
 
         // Tạo S3Client
         // Initialize settings if needed
