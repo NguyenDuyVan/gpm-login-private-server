@@ -50,14 +50,6 @@ class User extends Authenticatable
     const ROLE_USER = 'USER';
 
     /**
-     * Mutator to hash password automatically
-     */
-    public function setPasswordAttribute($value)
-    {
-        $this->attributes['password'] = bcrypt($value);
-    }
-
-    /**
      * Check if user is admin
      */
     public function isAdmin(): bool

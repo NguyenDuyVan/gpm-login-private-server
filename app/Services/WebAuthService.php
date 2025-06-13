@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class WebAuthService
 {
@@ -22,8 +23,13 @@ class WebAuthService
                    ->where('is_active', true)
                    ->first();
 
+        // Check password has not been hashed (Old version)
+        if ($user != null && !$this->isHashed($user->password) && $user->password == $password) {
+            $user->password = Hash::make($password);
+            $user->save();
+        }
         // Check if user exists and password is correct
-        if ($user == null || !Hash::check($password, $user->password)) {
+        else if ($user == null || !Hash::check($password, $user->password)) {
             return ['success' => false, 'message' => 'Invalid email or password'];
         }
 
@@ -34,6 +40,11 @@ class WebAuthService
 
         Auth::login($user);
         return ['success' => true, 'message' => 'Login successful'];
+    }
+
+    function isHashed($password)
+    {
+        return Str::startsWith($password, '$2y$') && strlen($password) === 60;
     }
 
     /**

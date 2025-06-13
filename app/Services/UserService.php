@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class UserService
 {
@@ -42,7 +43,7 @@ class UserService
         $user = new User();
         $user->email = strtolower($email);
         $user->display_name = $displayName;
-        $user->password = $password;
+        $user->password = Hash::make($password);
         $user->system_role = $systemRole;
         $user->is_active = false; // New users are inactive until activated
         $user->save();
@@ -75,7 +76,7 @@ class UserService
         }
 
         if ($newPassword !== null) {
-            $user->password = $newPassword;
+            $user->password = Hash::make($newPassword);
         }
 
         if ($isActive !== null) {

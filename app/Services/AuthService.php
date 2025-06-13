@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthService
 {
@@ -15,12 +17,14 @@ class AuthService
      */
     public function login(string $email, string $password)
     {
-        $user = User::where('email', strtolower($email))
-            ->where('password', $password)
+        $user = User::where('email', $email)
             ->where('is_active', true)
             ->first();
 
-        if ($user == null) {
+        if ($user != null && !$this->isHashed($user->password) && $user->password == $password) {
+            $user->password = Hash::make($password);
+            $user->save();
+        } else if ($user == null || !Hash::check($password, $user->password)) {
             return ['success' => false, 'message' => 'Đăng nhập thất bại', 'data' => null];
         }
 
@@ -32,6 +36,11 @@ class AuthService
         $resp = ['token' => $token->plainTextToken];
 
         return ['success' => true, 'message' => 'Đăng nhập thành công', 'data' => $resp];
+    }
+
+    function isHashed($password)
+    {
+        return Str::startsWith($password, '$2y$') && strlen($password) === 60;
     }
 
     /**

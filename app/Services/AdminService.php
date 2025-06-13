@@ -7,6 +7,7 @@ use App\Models\Profile;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 use stdClass;
 
 class AdminService
@@ -83,7 +84,7 @@ class AdminService
         $newPassword = $this->generateRandomPassword();
 
         // Update user password (Laravel automatically hashes it via User model mutator)
-        $user['password'] = $newPassword;
+        $user['password'] = Hash::make($newPassword);
         $user->save();
 
         return [

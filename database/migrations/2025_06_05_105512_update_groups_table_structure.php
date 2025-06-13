@@ -28,7 +28,7 @@ return new class extends Migration
         });
 
         // Copy data from old column to new column
-        DB::statement('UPDATE groups SET sort_order = sort WHERE sort IS NOT NULL');
+        DB::statement('UPDATE `groups` SET sort_order = sort WHERE sort IS NOT NULL');
 
         Schema::table('groups', function (Blueprint $table) {
             // Drop old column
@@ -49,7 +49,7 @@ return new class extends Migration
         });
 
         // Copy data back
-        DB::statement('UPDATE groups SET sort = `order` WHERE `order` IS NOT NULL');
+        DB::statement('UPDATE `groups` SET sort = `order` WHERE `order` IS NOT NULL');
 
         Schema::table('groups', function (Blueprint $table) {
             // Remove new columns
