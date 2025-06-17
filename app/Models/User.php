@@ -32,7 +32,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'remember_token',
+        // 'remember_token',
     ];
 
     /**
@@ -40,8 +40,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'system_role' => 'string',
-        'is_active' => 'boolean',
-        'email_verified_at' => 'datetime',
+        'is_active' => 'boolean'
     ];
 
     /**

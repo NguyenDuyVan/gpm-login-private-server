@@ -20,11 +20,9 @@ class GroupFactory extends Factory
     {
         return [
             'name' => fake()->words(2, true),
-            'order' => fake()->numberBetween(1, 100),
-            'created_by' => User::factory(),
-            'updated_by' => function (array $attributes) {
-                return $attributes['created_by'];
-            },
+            'sort_order' => fake()->numberBetween(1, 100),
+            'created_by' => User::where('email', 'Administrator')->first()->id,
+            'updated_by' => User::where('email', 'Administrator')->first()->id,
         ];
     }
 }
