@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use App\Services\S3PresignedUrlService;
 use App\Services\SettingService;
@@ -12,8 +11,6 @@ use App\Models\User;
 
 class S3PresignedUrlTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected $s3PresignedUrlService;
     protected $settingService;
     private $user;
