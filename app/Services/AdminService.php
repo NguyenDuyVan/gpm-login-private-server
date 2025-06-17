@@ -165,11 +165,6 @@ class AdminService
         return true;
     }
 
-    /**
-     * Run database migrations
-     *
-     * @return array
-     */
     public function runMigrations()
     {
         try {
