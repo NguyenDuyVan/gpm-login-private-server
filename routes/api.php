@@ -36,7 +36,7 @@ Route::prefix('users')->group(function () {
 
 Route::prefix('settings')->group(function () {
     Route::get('get-version', [SettingController::class, 'getPrivateServerVersion']); // 23.7.2024
-    Route::middleware(['auth:sanctum'])->group(function(){
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('get-s3-api', [SettingController::class, 'getS3Setting']);
         Route::get('get-storage-type', [SettingController::class, 'getStorageTypeSetting']);
         Route::get('get-setting', [SettingController::class, 'getAllSetting']); // 24.9.2024
