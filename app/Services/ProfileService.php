@@ -183,15 +183,15 @@ class ProfileService
     public function getProfile(int $id, User $user)
     {
         if (!$this->canAccessProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền với profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
-        return ['success' => true, 'message' => 'Thành công', 'data' => $profile];
+        return ['success' => true, 'message' => 'ok', 'data' => $profile];
     }
 
     /**
@@ -211,12 +211,12 @@ class ProfileService
     public function updateProfile(int $id, string $name, string $storagePath, array $jsonData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền sửa profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         $profile->name = $name;
@@ -228,7 +228,7 @@ class ProfileService
         $profile->last_run_by = $lastRunBy;
         $profile->save();
 
-        return ['success' => true, 'message' => 'OK', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -242,12 +242,12 @@ class ProfileService
     public function updateProfileStatus(int $id, int $status, User $user)
     {
         if (!$this->canAccessProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền update trạng thái profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_status', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // If user starts using profile
@@ -261,7 +261,7 @@ class ProfileService
             $profile->save();
         }
 
-        return ['success' => true, 'message' => 'Thành công', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -274,18 +274,18 @@ class ProfileService
     public function deleteProfile(int $id, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền xóa profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // Soft delete the profile
         $profile->softDelete($user);
 
-        return ['success' => true, 'message' => 'Xóa thành công', 'data' => null];
+        return ['success' => true, 'message' => 'profile_deleted', 'data' => null];
     }
 
     /**
@@ -298,17 +298,17 @@ class ProfileService
     public function restoreProfile(int $id, User $user)
     {
         if (!$user->isAdmin() && !$user->isModerator()) {
-            return ['success' => false, 'message' => 'Không đủ quyền khôi phục profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_restore', 'data' => null];
         }
 
         $profile = Profile::deleted()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại trong thùng rác', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found_in_trash', 'data' => null];
         }
 
         $profile->restore();
 
-        return ['success' => true, 'message' => 'Khôi phục thành công', 'data' => null];
+        return ['success' => true, 'message' => 'profile_restored', 'data' => null];
     }
 
     /**
@@ -338,22 +338,22 @@ class ProfileService
         // Validate shared user
         $sharedUser = User::find($userId);
         if ($sharedUser == null) {
-            return ['success' => false, 'message' => 'User ID không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
         }
 
         if ($sharedUser->isAdmin()) {
-            return ['success' => false, 'message' => 'Không cần set quyền cho Admin', 'data' => null];
+            return ['success' => false, 'message' => 'no_need_set_admin_permission', 'data' => null];
         }
 
         // Validate profile
         $profile = Profile::active()->find($profileId);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // Check permission
         if (!$currentUser->isAdmin() && $profile->created_by != $currentUser->id) {
-            return ['success' => false, 'message' => 'Bạn phải là người tạo profile', 'data' => null];
+            return ['success' => false, 'message' => 'owner_required', 'data' => null];
         }
 
         // Handle profile share
@@ -366,7 +366,7 @@ class ProfileService
             if ($profileShare != null) {
                 $profileShare->delete();
             }
-            return ['success' => true, 'message' => 'OK', 'data' => null];
+            return ['success' => true, 'message' => 'ok', 'data' => null];
         }
 
         // Create or update share
@@ -379,7 +379,7 @@ class ProfileService
         $profileShare->role = $role;
         $profileShare->save();
 
-        return ['success' => true, 'message' => 'OK', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -507,28 +507,28 @@ class ProfileService
     {
         $user = User::find($userId);
         if (!$user) {
-            return ['success' => false, 'message' => 'User không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
         }
 
         if (!$this->canAccessProfile($profileId, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền sử dụng profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
         }
 
         $profile = Profile::active()->find($profileId);
         if (!$profile) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // Check if profile is already in use by someone else
         if ($profile->isInUse() && $profile->using_by != $userId) {
-            return ['success' => false, 'message' => 'Profile đang được sử dụng bởi người khác', 'data' => null];
+            return ['success' => false, 'message' => 'profile_in_use_by_others', 'data' => null];
         }
 
         // Mark profile as in use
         $profile->markAsInUse($user);
         $profile->recordUsage($user);
 
-        return ['success' => true, 'message' => 'Bắt đầu sử dụng profile thành công', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -542,27 +542,27 @@ class ProfileService
     {
         $user = User::find($userId);
         if (!$user) {
-            return ['success' => false, 'message' => 'User không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
         }
 
         if (!$this->canAccessProfile($profileId, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền với profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
         }
 
         $profile = Profile::active()->find($profileId);
         if (!$profile) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // Only allow user to stop using if they are the current user
         if ($profile->using_by != $userId) {
-            return ['success' => false, 'message' => 'Bạn không phải người đang sử dụng profile này', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_current_user', 'data' => null];
         }
 
         // Mark profile as ready
         $profile->markAsReady();
 
-        return ['success' => true, 'message' => 'Dừng sử dụng profile thành công', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -577,16 +577,16 @@ class ProfileService
     {
         try {
             if (!$this->canModifyProfile($profileId, $user)) {
-                return ['success' => false, 'message' => 'Không đủ quyền thêm tag cho profile', 'data' => null];
+                return ['success' => false, 'message' => 'insufficient_permission_profile_tags', 'data' => null];
             }
 
             $profile = Profile::active()->find($profileId);
             if (!$profile) {
-                return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+                return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
             }
 
             if (empty($tagNames)) {
-                return ['success' => false, 'message' => 'Danh sách tag không được để trống', 'data' => null];
+                return ['success' => false, 'message' => 'tag_list_empty', 'data' => null];
             }
 
             // Find or create tags
@@ -598,13 +598,13 @@ class ProfileService
 
             return [
                 'success' => true,
-                'message' => 'Thêm tag thành công',
+                'message' => 'ok',
                 'data' => $profile->load(['tags', 'creator', 'group'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
+                'message' => 'error_with_details',
                 'data' => null
             ];
         }
@@ -622,16 +622,16 @@ class ProfileService
     {
         try {
             if (!$this->canModifyProfile($profileId, $user)) {
-                return ['success' => false, 'message' => 'Không đủ quyền xóa tag khỏi profile', 'data' => null];
+                return ['success' => false, 'message' => 'insufficient_permission_profile_remove_tags', 'data' => null];
             }
 
             $profile = Profile::active()->find($profileId);
             if (!$profile) {
-                return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+                return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
             }
 
             if (empty($tagIds)) {
-                return ['success' => false, 'message' => 'Danh sách tag ID không được để trống', 'data' => null];
+                return ['success' => false, 'message' => 'tag_id_list_empty', 'data' => null];
             }
 
             // Remove tags from profile
@@ -639,13 +639,13 @@ class ProfileService
 
             return [
                 'success' => true,
-                'message' => 'Xóa tag thành công',
+                'message' => 'ok',
                 'data' => $profile->load(['tags', 'creator', 'group'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
+                'message' => 'error_with_details',
                 'data' => null
             ];
         }

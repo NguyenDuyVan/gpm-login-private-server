@@ -37,7 +37,7 @@ class UserService
     {
         // Check if email already exists
         if (User::where('email', strtolower($email))->count() > 0) {
-            return ['success' => false, 'message' => 'Email đã tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'email_exists', 'data' => null];
         }
 
         $user = new User();
@@ -48,7 +48,7 @@ class UserService
         $user->is_active = false; // New users are inactive until activated
         $user->save();
 
-        return ['success' => true, 'message' => 'Đăng kí thành công', 'data' => $user];
+        return ['success' => true, 'message' => 'ok', 'data' => $user];
     }
 
     /**
@@ -66,7 +66,7 @@ class UserService
         $user = User::find($userId);
 
         if (!$user) {
-            return ['success' => false, 'message' => 'User không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
         }
 
         $user->display_name = $displayName;
@@ -85,7 +85,7 @@ class UserService
 
         $user->save();
 
-        return ['success' => true, 'message' => 'Đổi thông tin thành công', 'data' => $user];
+        return ['success' => true, 'message' => 'ok', 'data' => $user];
     }
 
     /**

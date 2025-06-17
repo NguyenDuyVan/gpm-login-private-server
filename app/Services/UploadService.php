@@ -37,14 +37,14 @@ class UploadService
             } else {
                 return [
                     'success' => false,
-                    'message' => 'Thất bại',
-                    'data' => ['message' => 'File rỗng']
+                    'message' => 'upload_failed',
+                    'data' => ['message' => 'file_empty']
                 ];
             }
         } catch (\Exception $ex) {
             return [
                 'success' => false,
-                'message' => 'Thất bại',
+                'message' => 'upload_failed',
                 'data' => $ex
             ];
         }
@@ -64,7 +64,7 @@ class UploadService
 
         return [
             'success' => true,
-            'message' => 'Thành công',
+            'message' => 'ok',
             'data' => [
                 'path' => 'storage/profiles',
                 'file_name' => $fileName
@@ -88,7 +88,7 @@ class UploadService
 
         return [
             'success' => true,
-            'message' => 'Thành công',
+            'message' => 'ok',
             'data' => [
                 'path' => 'profiles',
                 'file_name' => $fileName
@@ -142,7 +142,7 @@ class UploadService
 
             return [
                 'success' => true,
-                'message' => 'Thành công',
+                'message' => 'ok',
                 'data' => []
             ];
         } catch (\Exception $ex) {

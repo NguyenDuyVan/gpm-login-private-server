@@ -20,7 +20,7 @@ class GroupController extends BaseController
         $groups = $this->groupService->getAllGroups();
         return response()->json([
             'success' => true,
-            'message' => 'Thành công',
+            'message' => 'ok',
             'data' => $groups
         ]);
     }
@@ -32,7 +32,7 @@ class GroupController extends BaseController
         if (!$this->groupService->hasAdminPermission($user)) {
             return response()->json([
                 'success' => true,
-                'message' => 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!',
+                'message' => 'admin_required',
                 'data' => null
             ]);
         }
@@ -45,7 +45,7 @@ class GroupController extends BaseController
 
         return response()->json([
             'success' => true,
-            'message' => 'Thành công',
+            'message' => 'group_created',
             'data' => $group
         ]);
     }
@@ -57,7 +57,7 @@ class GroupController extends BaseController
         if (!$this->groupService->hasAdminPermission($user)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!',
+                'message' => 'admin_required',
                 'data' => null
             ]);
         }
@@ -72,14 +72,14 @@ class GroupController extends BaseController
         if ($group == null) {
             return response()->json([
                 'success' => false,
-                'message' => 'Group không tồn tại',
+                'message' => 'group_not_found',
                 'data' => null
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Cập nhật thành công',
+            'message' => 'group_updated',
             'data' => null
         ]);
     }
@@ -91,7 +91,7 @@ class GroupController extends BaseController
         if (!$this->groupService->hasAdminPermission($user)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!',
+                'message' => 'admin_required',
                 'data' => null
             ]);
         }
@@ -111,7 +111,7 @@ class GroupController extends BaseController
         $total = $this->groupService->getTotalGroups();
         return response()->json([
             'success' => true,
-            'message' => 'OK',
+            'message' => 'ok',
             'data' => ['total' => $total]
         ]);
     }
@@ -122,7 +122,7 @@ class GroupController extends BaseController
         $groupShares = $this->groupService->getGroupShares($id);
         return response()->json([
             'success' => true,
-            'message' => 'OK',
+            'message' => 'ok',
             'data' => $groupShares
         ]);
     }

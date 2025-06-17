@@ -73,16 +73,16 @@ class GroupService
         $group = Group::find($id);
 
         if ($group == null) {
-            return ['success' => false, 'message' => 'Group không tồn tại!'];
+            return ['success' => false, 'message' => 'group_not_found'];
         }
 
         if ($group->profiles->count() > 0) {
-            return ['success' => false, 'message' => 'Không thể xóa Group có liên kết với Profiles!'];
+            return ['success' => false, 'message' => 'cannot_delete_group_with_profiles'];
         }
 
         $group->delete();
 
-        return ['success' => true, 'message' => 'Xóa thành công'];
+        return ['success' => true, 'message' => 'group_deleted'];
     }
 
     /**
@@ -104,8 +104,8 @@ class GroupService
     public function getGroupShares(int $groupId)
     {
         return GroupShare::where('group_id', $groupId)
-                        ->with(['group', 'user'])
-                        ->get();
+            ->with(['group', 'user'])
+            ->get();
     }
 
     /**
@@ -122,35 +122,35 @@ class GroupService
         // Validate shared user
         $sharedUser = User::find($userId);
         if ($sharedUser == null) {
-            return ['success' => false, 'message' => 'User ID không tồn tại'];
+            return ['success' => false, 'message' => 'user_not_found'];
         }
 
         if ($sharedUser->isAdmin()) {
-            return ['success' => false, 'message' => 'Không cần set quyền cho Admin'];
+            return ['success' => false, 'message' => 'no_need_set_admin_permission'];
         }
 
         // Validate group
         $group = Group::find($groupId);
         if ($group == null) {
-            return ['success' => false, 'message' => 'Group không tồn tại'];
+            return ['success' => false, 'message' => 'group_not_found'];
         }
 
         // Check permission
         if (!$currentUser->isAdmin() && $group->created_by != $currentUser->id) {
-            return ['success' => false, 'message' => 'Bạn phải là người tạo group'];
+            return ['success' => false, 'message' => 'owner_required'];
         }
 
         // Handle group share
         $groupShare = GroupShare::where('group_id', $groupId)
-                               ->where('user_id', $userId)
-                               ->first();
+            ->where('user_id', $userId)
+            ->first();
 
         // If role is empty or invalid, remove the share
         if (empty($role) || !in_array($role, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
             if ($groupShare != null) {
                 $groupShare->delete();
             }
-            return ['success' => true, 'message' => 'OK'];
+            return ['success' => true, 'message' => 'ok'];
         }
 
         // Create or update share
@@ -163,7 +163,7 @@ class GroupService
         $groupShare->role = $role;
         $groupShare->save();
 
-        return ['success' => true, 'message' => 'OK'];
+        return ['success' => true, 'message' => 'ok'];
     }
 
     /**
@@ -202,8 +202,8 @@ class GroupService
 
         // Check group shares
         $groupShare = GroupShare::where('group_id', $groupId)
-                               ->where('user_id', $user->id)
-                               ->first();
+            ->where('user_id', $user->id)
+            ->first();
 
         return $groupShare !== null;
     }
@@ -233,9 +233,9 @@ class GroupService
 
         // Check group shares with FULL access
         $groupShare = GroupShare::where('group_id', $groupId)
-                               ->where('user_id', $user->id)
-                               ->where('role', GroupShare::ROLE_FULL)
-                               ->first();
+            ->where('user_id', $user->id)
+            ->where('role', GroupShare::ROLE_FULL)
+            ->first();
 
         return $groupShare !== null;
     }

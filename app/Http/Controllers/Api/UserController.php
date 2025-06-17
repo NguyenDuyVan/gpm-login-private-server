@@ -17,23 +17,12 @@ class UserController extends BaseController
         $this->userService = $userService;
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index(Request $request)
     {
         $users = $this->userService->getAllUsers();
-        return $this->getJsonResponse(true, 'Thành công', $users);
+        return $this->getJsonResponse(true, 'success', $users);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
         $result = $this->userService->createUser(
@@ -45,12 +34,7 @@ class UserController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+
     public function update(Request $request)
     {
         $result = $this->userService->updateUser(

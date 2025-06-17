@@ -52,7 +52,7 @@ class ProfileController extends BaseController
             $request->storage_type ?? 'S3'
         );
 
-        return $this->getJsonResponse(true, 'Thành công', $result);
+        return $this->getJsonResponse(true, 'success', $result);
     }
 
     public function show($id, Request $request)

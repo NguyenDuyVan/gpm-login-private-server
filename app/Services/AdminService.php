@@ -169,7 +169,7 @@ class AdminService
     {
         try {
             \App\Http\Controllers\UpdateController::migrationDatabase();
-            return ['success' => true, 'message' => 'Migration successfully'];
+            return ['success' => true, 'message' => 'ok'];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Migration failed: ' . $e->getMessage()];
         }

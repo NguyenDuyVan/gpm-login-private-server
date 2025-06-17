@@ -56,9 +56,9 @@ class SettingService
                 's3_api_region' => $apiRegion
             ];
 
-            return ['success' => true, 'message' => 'OK', 'data' => $settings];
+            return ['success' => true, 'message' => 'ok', 'data' => $settings];
         } catch (\Exception $ex) {
-            return ['success' => false, 'message' => 'Chưa cài đặt đủ thông tin S3 API', 'data' => null];
+            return ['success' => false, 'message' => 's3_settings_incomplete', 'data' => null];
         }
     }
 
@@ -139,9 +139,9 @@ class SettingService
             $this->setSetting('s3_bucket', $s3Data['S3_BUCKET'] ?? '');
             $this->setSetting('s3_region', $s3Data['S3_REGION'] ?? '');
 
-            return ['success' => true, 'message' => 'Cập nhật S3 settings thành công'];
+            return ['success' => true, 'message' => 's3_settings_updated'];
         } catch (\Exception $ex) {
-            return ['success' => false, 'message' => 'Lỗi khi cập nhật S3 settings: ' . $ex->getMessage()];
+            return ['success' => false, 'message' => 's3_settings_error', 'data' => ['details' => $ex->getMessage()]];
         }
     }
 
@@ -155,7 +155,7 @@ class SettingService
         $this->initializeDefaultSettings();
 
         $setting = Setting::where('name', 'storage_type')->first();
-        return ['success' => true, 'message' => 'OK', 'data' => $setting->value];
+        return ['success' => true, 'message' => 'ok', 'data' => $setting->value];
     }
 
     /**
@@ -178,7 +178,7 @@ class SettingService
         }
 
         $response['version'] = $version;
-        return ['success' => true, 'message' => 'OK', 'data' => $response];
+        return ['success' => true, 'message' => 'ok', 'data' => $response];
     }
 
     /**
@@ -210,7 +210,7 @@ class SettingService
         $response['storage_type'] = $storage_type->value ?? 'local';
         $response['cache_extension'] = $cache_extension->value ?? 'off';
 
-        return ['success' => true, 'message' => 'OK', 'data' => $response];
+        return ['success' => true, 'message' => 'ok', 'data' => $response];
     }
 
     /**

@@ -35,7 +35,7 @@ class UpdateService
 
             return [
                 'success' => true,
-                'message' => 'Update completed successfully: version ' . \App\Http\Controllers\Api\SettingController::$server_version
+                'message' => 'ok'
             ];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
@@ -121,7 +121,7 @@ class UpdateService
 
             return [
                 'success' => true,
-                'message' => 'Migrations completed successfully',
+                'message' => 'ok',
                 'executed' => $executedMigrations
             ];
 

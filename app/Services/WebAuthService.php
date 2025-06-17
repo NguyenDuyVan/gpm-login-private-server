@@ -39,7 +39,7 @@ class WebAuthService
         }
 
         Auth::login($user);
-        return ['success' => true, 'message' => 'Login successful'];
+        return ['success' => true, 'message' => 'ok'];
     }
 
     function isHashed($password)

@@ -5,6 +5,7 @@ namespace App\Services;
 use Google_Client;
 use Google_Service_Drive;
 use Google_Service_Drive_DriveFile;
+use Google_Service_Drive_Permission;
 use Exception;
 
 class GoogleDriveService
@@ -26,14 +27,14 @@ class GoogleDriveService
     {
         try {
             $this->client = new Google_Client();
-            
+
             // Set the path to your service account key file
             $credentialsPath = storage_path('credentials/google-drive-credentials.json');
             $this->client->setAuthConfig($credentialsPath);
-            
+
             // Set the required scopes
             $this->client->addScope(Google_Service_Drive::DRIVE_FILE);
-            
+
             // Initialize the Drive service
             $this->driveService = new Google_Service_Drive($this->client);
         } catch (Exception $e) {
@@ -77,7 +78,7 @@ class GoogleDriveService
 
             return [
                 'success' => true,
-                'message' => 'File uploaded successfully to Google Drive',
+                'message' => 'ok',
                 'data' => [
                     'file_id' => $uploadedFile->getId(),
                     'file_name' => $fileName,
@@ -108,7 +109,7 @@ class GoogleDriveService
 
             return [
                 'success' => true,
-                'message' => 'File deleted successfully from Google Drive',
+                'message' => 'ok',
                 'data' => []
             ];
         } catch (Exception $e) {
@@ -172,7 +173,7 @@ class GoogleDriveService
 
             return [
                 'success' => true,
-                'message' => 'Folder created successfully',
+                'message' => 'ok',
                 'data' => [
                     'folder_id' => $folder->getId(),
                     'folder_name' => $folderName
@@ -203,7 +204,7 @@ class GoogleDriveService
         try {
             // Check if we have the folder ID stored in settings
             $folderIdSetting = $this->settingService->getSetting('google_drive_profiles_folder_id');
-            
+
             if ($folderIdSetting && $folderIdSetting->value) {
                 // Verify the folder still exists
                 try {
@@ -216,13 +217,13 @@ class GoogleDriveService
 
             // Create new folder
             $result = $this->createFolder('GPM-Profiles');
-            
+
             if ($result['success']) {
                 $folderId = $result['data']['folder_id'];
-                
+
                 // Store the folder ID in settings
                 $this->settingService->setSetting('google_drive_profiles_folder_id', $folderId);
-                
+
                 return $folderId;
             }
 
