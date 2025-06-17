@@ -17,11 +17,7 @@ class ProxyController extends BaseController
         $this->proxyService = $proxyService;
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -36,12 +32,7 @@ class ProxyController extends BaseController
         return $this->getJsonResponse(true, 'OK', $proxies);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+
     public function store(Request $request)
     {
         $user = $request->user();
@@ -59,12 +50,7 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function show($id, Request $request)
     {
         $user = $request->user();
@@ -72,13 +58,7 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function update(Request $request, $id)
     {
         $user = $request->user();
@@ -97,12 +77,6 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id, Request $request)
     {
         $user = $request->user();
@@ -110,12 +84,7 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], null);
     }
 
-    /**
-     * Toggle proxy status
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function toggleStatus($id, Request $request)
     {
         $user = $request->user();
@@ -123,12 +92,6 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Add tags to proxy
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function addTags($id, Request $request)
     {
         $user = $request->user();
@@ -136,12 +99,6 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Remove tags from proxy
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function removeTags($id, Request $request)
     {
         $user = $request->user();
@@ -149,12 +106,7 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    /**
-     * Test proxy connection
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function testConnection($id, Request $request)
     {
         $user = $request->user();

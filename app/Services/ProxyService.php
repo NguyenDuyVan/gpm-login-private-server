@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Models\Proxy;
 use App\Models\User;
-use App\Models\Tag;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class ProxyService
@@ -27,16 +25,16 @@ class ProxyService
         // Apply search filter
         if (!empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('host', 'like', "%{$search}%");
+                    ->orWhere('host', 'like', "%{$search}%");
             });
         }
 
         // Apply tag filter
         if (!empty($filters['tags'])) {
             $tagIds = is_array($filters['tags']) ? $filters['tags'] : explode(',', $filters['tags']);
-            $query->whereHas('tags', function($q) use ($tagIds) {
+            $query->whereHas('tags', function ($q) use ($tagIds) {
                 $q->whereIn('tags.id', $tagIds);
             });
         }
@@ -66,7 +64,7 @@ class ProxyService
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -75,7 +73,7 @@ class ProxyService
             if (!$this->canAccessProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền truy cập proxy này',
+                    'message' => 'insufficient_permission_proxy',
                     'data' => null
                 ];
             }
@@ -88,8 +86,8 @@ class ProxyService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -113,14 +111,14 @@ class ProxyService
 
             return [
                 'success' => true,
-                'message' => 'Tạo proxy thành công',
+                'message' => 'proxy_created',
                 'data' => $proxy->load(['tags', 'creator'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -128,14 +126,14 @@ class ProxyService
     /**
      * Update proxy
      */
-    public function updateProxy($id, $name, $host, $port, $username = null, $password = null, $type = null, User $user)
+    public function updateProxy($id, $name, $host, $port, User $user, $username = null, $password = null, $type = null)
     {
         try {
             $proxy = Proxy::find($id);
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -144,7 +142,7 @@ class ProxyService
             if (!$this->canManageProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền cập nhật proxy này',
+                    'message' => 'insufficient_permission_proxy_edit',
                     'data' => null
                 ];
             }
@@ -165,14 +163,14 @@ class ProxyService
 
             return [
                 'success' => true,
-                'message' => 'Cập nhật proxy thành công',
+                'message' => 'proxy_updated',
                 'data' => $proxy->load(['tags', 'creator'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -187,7 +185,7 @@ class ProxyService
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -196,7 +194,7 @@ class ProxyService
             if (!$this->canManageProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền xóa proxy này',
+                    'message' => 'insufficient_permission_proxy_delete',
                     'data' => null
                 ];
             }
@@ -208,14 +206,14 @@ class ProxyService
 
             return [
                 'success' => true,
-                'message' => 'Xóa proxy thành công',
+                'message' => 'proxy_deleted',
                 'data' => null
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -230,7 +228,7 @@ class ProxyService
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -239,7 +237,7 @@ class ProxyService
             if (!$this->canManageProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền thay đổi trạng thái proxy này',
+                    'message' => 'insufficient_permission_proxy_status',
                     'data' => null
                 ];
             }
@@ -248,14 +246,14 @@ class ProxyService
 
             return [
                 'success' => true,
-                'message' => 'Cập nhật trạng thái proxy thành công',
+                'message' => 'proxy_status_updated',
                 'data' => $proxy->load(['tags', 'creator'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -270,7 +268,7 @@ class ProxyService
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -279,7 +277,7 @@ class ProxyService
             if (!$this->canManageProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền thêm tag cho proxy này',
+                    'message' => 'insufficient_permission_proxy_tags',
                     'data' => null
                 ];
             }
@@ -291,14 +289,14 @@ class ProxyService
 
             return [
                 'success' => true,
-                'message' => 'Thêm tag thành công',
+                'message' => 'ok',
                 'data' => $proxy->load(['tags', 'creator'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -313,7 +311,7 @@ class ProxyService
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -322,7 +320,7 @@ class ProxyService
             if (!$this->canManageProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền xóa tag khỏi proxy này',
+                    'message' => 'insufficient_permission_proxy_remove_tags',
                     'data' => null
                 ];
             }
@@ -331,14 +329,14 @@ class ProxyService
 
             return [
                 'success' => true,
-                'message' => 'Xóa tag thành công',
+                'message' => 'ok',
                 'data' => $proxy->load(['tags', 'creator'])
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -353,7 +351,7 @@ class ProxyService
             if (!$proxy) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy không tồn tại',
+                    'message' => 'proxy_not_found',
                     'data' => null
                 ];
             }
@@ -362,7 +360,7 @@ class ProxyService
             if (!$this->canAccessProxy($user, $proxy)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền test proxy này',
+                    'message' => 'insufficient_permission_proxy_test',
                     'data' => null
                 ];
             }
@@ -389,7 +387,7 @@ class ProxyService
                 if ($response->successful()) {
                     return [
                         'success' => true,
-                        'message' => 'Proxy hoạt động bình thường',
+                        'message' => 'ok',
                         'data' => [
                             'response_time' => $responseTime . 'ms',
                             'ip' => $response->json('origin') ?? 'Unknown'
@@ -398,23 +396,22 @@ class ProxyService
                 } else {
                     return [
                         'success' => false,
-                        'message' => 'Proxy không thể kết nối (HTTP ' . $response->status() . ')',
+                        'message' => 'proxy_connection_failed',
                         'data' => null
                     ];
                 }
             } catch (\Exception $httpException) {
                 return [
                     'success' => false,
-                    'message' => 'Không thể kết nối đến proxy: ' . $httpException->getMessage(),
-                    'data' => null
+                    'message' => 'proxy_connection_error',
+                    'data' => ['details' => $httpException->getMessage()]
                 ];
             }
-
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }

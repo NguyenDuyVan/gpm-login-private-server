@@ -29,10 +29,6 @@ class UpdateController extends Controller
         return redirect()->back()->with('msg', $result['message']);
     }
 
-    /**
-     * Static method for backward compatibility
-     * Calls the service method for database migration
-     */
     public static function migrationDatabase()
     {
         $updateService = new \App\Services\UpdateService();

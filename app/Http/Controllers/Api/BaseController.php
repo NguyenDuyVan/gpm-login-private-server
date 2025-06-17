@@ -16,7 +16,8 @@ class BaseController extends Controller
      * @param  object  $data
      *
      */
-    protected function getJsonResponse($success, $message, $data){
+    protected function getJsonResponse($success, $message, $data)
+    {
         $resp = ['success' => $success, 'message' => $message, 'data' => $data];
         return response()->json($resp, 200, [], JSON_UNESCAPED_UNICODE);
     }

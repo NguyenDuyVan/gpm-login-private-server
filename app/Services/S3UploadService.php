@@ -18,33 +18,60 @@ class S3UploadService
 
     public function getS3RegionCode($s3Region)
     {
-        if($s3Region == 'AFSouth1') return 'af-south-1';
-        if($s3Region == 'APEast1') return 'ap-east-1';
-        if($s3Region == 'APNortheast1') return 'ap-northeast-1';
-        if($s3Region == 'APNortheast2') return 'ap-northeast-2';
-        if($s3Region == 'APNortheast3') return 'ap-northeast-3';
-        if($s3Region == 'APSouth1') return 'ap-south-1';
-        if($s3Region == 'APSoutheast1') return 'ap-southeast-1';
-        if($s3Region == 'APSoutheast2') return 'ap-southeast-2';
-        if($s3Region == 'CACentral1') return 'ca-central-1';
-        if($s3Region == 'CNNorth1') return 'cn-north-1';
-        if($s3Region == 'CNNorthWest1') return 'cn-northwest-1';
-        if($s3Region == 'EUCentral1') return 'eu-central-1';
-        if($s3Region == 'EUNorth1') return 'eu-north-1';
-        if($s3Region == 'EUSouth1') return 'eu-south-1';
-        if($s3Region == 'EUWest1') return 'eu-west-1';
-        if($s3Region == 'EUWest2') return 'eu-west-2';
-        if($s3Region == 'EUWest3') return 'eu-west-3';
-        if($s3Region == 'MESouth1') return 'me-south-1';
-        if($s3Region == 'SAEast1') return 'sa-east-1';
-        if($s3Region == 'USEast1') return 'us-east-1';
-        if($s3Region == 'USEast2') return 'us-east-2';
-        if($s3Region == 'USGovCloudEast1') return 'us-gov-east-1';
-        if($s3Region == 'USGovCloudWest1') return 'us-gov-west-1';
-        if($s3Region == 'USIsobEast1') return 'us-isob-east-1';
-        if($s3Region == 'USIsoEast1') return 'us-iso-east-1';
-        if($s3Region == 'USWest1') return 'us-west-1';
-        if($s3Region == 'USWest2') return 'us-west-2';
+        if ($s3Region == 'AFSouth1')
+            return 'af-south-1';
+        if ($s3Region == 'APEast1')
+            return 'ap-east-1';
+        if ($s3Region == 'APNortheast1')
+            return 'ap-northeast-1';
+        if ($s3Region == 'APNortheast2')
+            return 'ap-northeast-2';
+        if ($s3Region == 'APNortheast3')
+            return 'ap-northeast-3';
+        if ($s3Region == 'APSouth1')
+            return 'ap-south-1';
+        if ($s3Region == 'APSoutheast1')
+            return 'ap-southeast-1';
+        if ($s3Region == 'APSoutheast2')
+            return 'ap-southeast-2';
+        if ($s3Region == 'CACentral1')
+            return 'ca-central-1';
+        if ($s3Region == 'CNNorth1')
+            return 'cn-north-1';
+        if ($s3Region == 'CNNorthWest1')
+            return 'cn-northwest-1';
+        if ($s3Region == 'EUCentral1')
+            return 'eu-central-1';
+        if ($s3Region == 'EUNorth1')
+            return 'eu-north-1';
+        if ($s3Region == 'EUSouth1')
+            return 'eu-south-1';
+        if ($s3Region == 'EUWest1')
+            return 'eu-west-1';
+        if ($s3Region == 'EUWest2')
+            return 'eu-west-2';
+        if ($s3Region == 'EUWest3')
+            return 'eu-west-3';
+        if ($s3Region == 'MESouth1')
+            return 'me-south-1';
+        if ($s3Region == 'SAEast1')
+            return 'sa-east-1';
+        if ($s3Region == 'USEast1')
+            return 'us-east-1';
+        if ($s3Region == 'USEast2')
+            return 'us-east-2';
+        if ($s3Region == 'USGovCloudEast1')
+            return 'us-gov-east-1';
+        if ($s3Region == 'USGovCloudWest1')
+            return 'us-gov-west-1';
+        if ($s3Region == 'USIsobEast1')
+            return 'us-isob-east-1';
+        if ($s3Region == 'USIsoEast1')
+            return 'us-iso-east-1';
+        if ($s3Region == 'USWest1')
+            return 'us-west-1';
+        if ($s3Region == 'USWest2')
+            return 'us-west-2';
         return 'us-east-1';
     }
 
@@ -75,8 +102,10 @@ class S3UploadService
         $s3Data = $s3Settings['data'];
 
         // Validate S3 configuration
-        if (empty($s3Data['s3_api_key']) || empty($s3Data['s3_api_secret']) ||
-            empty($s3Data['s3_api_bucket']) || empty($s3Data['s3_api_region'])) {
+        if (
+            empty($s3Data['s3_api_key']) || empty($s3Data['s3_api_secret']) ||
+            empty($s3Data['s3_api_bucket']) || empty($s3Data['s3_api_region'])
+        ) {
             return [
                 'success' => false,
                 'message' => 'S3 configuration is incomplete. Please check your S3 settings.',

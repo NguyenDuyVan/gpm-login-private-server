@@ -10,11 +10,6 @@ class SettingService
 {
     public static $server_version = 12;
 
-    /**
-     * Initialize default settings if they don't exist
-     *
-     * @return void
-     */
     public function initializeDefaultSettings()
     {
         $defaultSettings = [
@@ -34,11 +29,6 @@ class SettingService
         }
     }
 
-    /**
-     * Get S3 settings from database
-     *
-     * @return array
-     */
     public function getS3Settings()
     {
         try {
@@ -56,17 +46,13 @@ class SettingService
                 's3_api_region' => $apiRegion
             ];
 
-            return ['success' => true, 'message' => 'OK', 'data' => $settings];
+            return ['success' => true, 'message' => 'ok', 'data' => $settings];
         } catch (\Exception $ex) {
-            return ['success' => false, 'message' => 'Chưa cài đặt đủ thông tin S3 API', 'data' => null];
+            return ['success' => false, 'message' => 's3_settings_incomplete', 'data' => null];
         }
     }
 
-    /**
-     * Get S3 configuration object for admin form
-     *
-     * @return object
-     */
+
     public function getS3Config()
     {
         $this->initializeDefaultSettings();
@@ -79,13 +65,7 @@ class SettingService
         ];
     }
 
-    /**
-     * Set or update a setting
-     *
-     * @param string $key
-     * @param string $value
-     * @return Setting
-     */
+
     public function setSetting(string $key, string $value)
     {
         $setting = Setting::where('name', $key)->first();
@@ -101,160 +81,118 @@ class SettingService
         return $setting;
     }
 
-    /**
-     * Get a setting by name
-     *
-     * @param string $key
-     * @return Setting|null
-     */
-    public function getSetting(string $key)
-    {
-        return Setting::where('name', $key)->first();
-    }
-
-    /**
-     * Get a setting value by name (convenience method)
-     *
-     * @param string $key
-     * @param string|null $default
-     * @return string|null
-     */
-    public function get(string $key, $default = null)
-    {
-        $setting = $this->getSetting($key);
-        return $setting ? $setting->value : $default;
-    }
-
-    /**
-     * Update S3 settings
-     *
-     * @param array $s3Data
-     * @return array
-     */
-    public function updateS3Settings(array $s3Data)
-    {
-        try {
-            $this->setSetting('s3_key', $s3Data['S3_KEY'] ?? '');
-            $this->setSetting('s3_secret', $s3Data['S3_PASSWORD'] ?? '');
-            $this->setSetting('s3_bucket', $s3Data['S3_BUCKET'] ?? '');
-            $this->setSetting('s3_region', $s3Data['S3_REGION'] ?? '');
-
-            return ['success' => true, 'message' => 'Cập nhật S3 settings thành công'];
-        } catch (\Exception $ex) {
-            return ['success' => false, 'message' => 'Lỗi khi cập nhật S3 settings: ' . $ex->getMessage()];
-        }
-    }
-
-    /**
-     * Get storage type setting
-     *
-     * @return array
-     */
-    public function getStorageTypeSetting()
-    {
-        $this->initializeDefaultSettings();
-
-        $setting = Setting::where('name', 'storage_type')->first();
-        return ['success' => true, 'message' => 'OK', 'data' => $setting->value];
-    }
-
-    /**
-     * Get private server version and ensure trash group exists
-     *
-     * @return array
-     */
-    public function getPrivateServerVersion()
-    {
-        $version = self::$server_version;
-        $response = [];
-
-        // Check trash group for version 11+
-        if ($version >= 11) {
-            $result = $this->ensureTrashGroupExists();
-            if (!$result['success']) {
-                $version -= 1;
-                $response['message'] = $result['message'];
-            }
+        public function getSetting(string $key)
+        {
+            return Setting::where('name', $key)->first();
         }
 
-        $response['version'] = $version;
-        return ['success' => true, 'message' => 'OK', 'data' => $response];
-    }
-
-    /**
-     * Get all settings
-     *
-     * @return array
-     */
-    public function getAllSettings()
-    {
-        $this->initializeDefaultSettings();
-
-        $version = self::$server_version;
-        $response = [];
-
-        // Check trash group for version 11+
-        if ($version >= 11) {
-            $result = $this->ensureTrashGroupExists();
-            if (!$result['success']) {
-                $version -= 1;
-                $response['message'] = $result['message'];
-            }
+        public function get(string $key, $default = null)
+        {
+            $setting = $this->getSetting($key);
+            return $setting ? $setting->value : $default;
         }
 
-        // Get settings from database
-        $storage_type = Setting::where('name', 'storage_type')->first();
-        $cache_extension = Setting::where('name', 'cache_extension')->first();
-
-        $response['version'] = $version;
-        $response['storage_type'] = $storage_type->value ?? 'local';
-        $response['cache_extension'] = $cache_extension->value ?? 'off';
-
-        return ['success' => true, 'message' => 'OK', 'data' => $response];
-    }
-
-    /**
-     * Ensure trash group exists for version 11+
-     *
-     * @return array
-     */
-    private function ensureTrashGroupExists()
-    {
-        $groupTrashId = 0;
-        $groupTrashName = 'Trash auto create (update private server version 11)';
-
-        if (!Group::where('id', $groupTrashId)->exists()) {
+        public function updateS3Settings(array $s3Data)
+        {
             try {
-                $userAdmin = User::where('role', 2)->first();
-                if (!$userAdmin) {
-                    return ['success' => false, 'message' => 'No admin user found'];
+                $this->setSetting('s3_key', $s3Data['S3_KEY'] ?? '');
+                $this->setSetting('s3_secret', $s3Data['S3_PASSWORD'] ?? '');
+                $this->setSetting('s3_bucket', $s3Data['S3_BUCKET'] ?? '');
+                $this->setSetting('s3_region', $s3Data['S3_REGION'] ?? '');
+
+                return ['success' => true, 'message' => 's3_settings_updated'];
+            } catch (\Exception $ex) {
+                return ['success' => false, 'message' => 's3_settings_error', 'data' => ['details' => $ex->getMessage()]];
+            }
+        }
+
+        public function getStorageTypeSetting()
+        {
+            $this->initializeDefaultSettings();
+
+            $setting = Setting::where('name', 'storage_type')->first();
+            return ['success' => true, 'message' => 'ok', 'data' => $setting->value];
+        }
+
+        public function getPrivateServerVersion()
+        {
+            $version = self::$server_version;
+            $response = [];
+
+            if ($version >= 11) {
+                $result = $this->ensureTrashGroupExists();
+                if (!$result['success']) {
+                    $version -= 1;
+                    $response['message'] = $result['message'];
                 }
-
-                $group = new Group();
-                $group->name = $groupTrashName;
-                $group->sort = 2147483647; // int max
-                $group->created_by = $userAdmin->id;
-                $group->save();
-            } catch (\Exception $e) {
-                return ['success' => false, 'message' => 'Can not create Trash group'];
             }
+
+            $response['version'] = $version;
+            return ['success' => true, 'message' => 'ok', 'data' => $response];
         }
 
-        $group = Group::where('name', $groupTrashName)->first();
+        public function getAllSettings()
+        {
+            $this->initializeDefaultSettings();
 
-        if ($group == null) {
-            return ['success' => false, 'message' => 'Trash group not found'];
-        }
+            $version = self::$server_version;
+            $response = [];
 
-        if ($group->id != $groupTrashId) {
-            try {
-                $group->id = $groupTrashId;
-                $group->save();
-            } catch (\Exception $e) {
-                return ['success' => false, 'message' => 'Can not update id group Trash'];
+            if ($version >= 11) {
+                $result = $this->ensureTrashGroupExists();
+                if (!$result['success']) {
+                    $version -= 1;
+                    $response['message'] = $result['message'];
+                }
             }
+
+            $storage_type = Setting::where('name', 'storage_type')->first();
+            $cache_extension = Setting::where('name', 'cache_extension')->first();
+
+            $response['version'] = $version;
+            $response['storage_type'] = $storage_type->value ?? 'local';
+            $response['cache_extension'] = $cache_extension->value ?? 'off';
+
+            return ['success' => true, 'message' => 'ok', 'data' => $response];
         }
 
-        return ['success' => true, 'message' => 'Trash group ensured'];
+        private function ensureTrashGroupExists()
+        {
+            $groupTrashId = 0;
+            $groupTrashName = 'Trash auto create (update private server version 11)';
+
+            if (!Group::where('id', $groupTrashId)->exists()) {
+                try {
+                    $userAdmin = User::where('role', 2)->first();
+                    if (!$userAdmin) {
+                        return ['success' => false, 'message' => 'No admin user found'];
+                    }
+
+                    $group = new Group();
+                    $group->name = $groupTrashName;
+                    $group->sort = 2147483647;
+                    $group->created_by = $userAdmin->id;
+                    $group->save();
+                } catch (\Exception $e) {
+                    return ['success' => false, 'message' => 'Can not create Trash group'];
+                }
+            }
+
+            $group = Group::where('name', $groupTrashName)->first();
+
+            if ($group == null) {
+                return ['success' => false, 'message' => 'Trash group not found'];
+            }
+
+            if ($group->id != $groupTrashId) {
+                try {
+                    $group->id = $groupTrashId;
+                    $group->save();
+                } catch (\Exception $e) {
+                    return ['success' => false, 'message' => 'Can not update id group Trash'];
+                }
+            }
+
+            return ['success' => true, 'message' => 'Trash group ensured'];
+        }
     }
-}

@@ -79,14 +79,18 @@ class SetupService
 
             return [
                 'success' => true,
-                'message' => "Tạo thành công<br><br>Tài khoản admin mặc định: <b>{$firstUser->user_name}</b> / <b>{$firstUser->password}</b><br>Bạn có thể đổi mật khẩu trên giao diện GPM-Login<br><br><br><br><a href='/'>Về trang chủ</a>"
+                'message' => 'ok',
+                'data' => [
+                    'admin_username' => $firstUser->user_name,
+                    'admin_password' => $firstUser->password
+                ]
             ];
-
         } catch (\Exception $ex) {
             $msg = $ex->getMessage();
             return [
                 'success' => false,
-                'message' => "Không kết nối được đến database<br>$msg"
+                'message' => 'database_connection_failed',
+                'data' => ['details' => $msg]
             ];
         }
     }

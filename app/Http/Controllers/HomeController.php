@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use App\Services\SetupService;
 use Carbon\Carbon;
@@ -33,8 +34,8 @@ class HomeController extends Controller
     }
 
     /*
-    * Create database
-    */
+     * Create database
+     */
     public function createDb(Request $request)
     {
         $result = $this->setupService->createDatabase(

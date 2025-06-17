@@ -14,12 +14,15 @@ use App\Http\Controllers\HomeController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API V1 Routes (Default)
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
+| These routes are available at both:
+| - /api/* (for backward compatibility)
+| - /api/v1/* (versioned endpoint)
+|
+| When adding new features, consider adding them to api_v2.php instead
+| to maintain backward compatibility with existing applications.
 |
 */
 
@@ -33,7 +36,7 @@ Route::prefix('users')->group(function () {
 
 Route::prefix('settings')->group(function () {
     Route::get('get-version', [SettingController::class, 'getPrivateServerVersion']); // 23.7.2024
-    Route::middleware(['auth:sanctum'])->group(function(){
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('get-s3-api', [SettingController::class, 'getS3Setting']);
         Route::get('get-storage-type', [SettingController::class, 'getStorageTypeSetting']);
         Route::get('get-setting', [SettingController::class, 'getAllSetting']); // 24.9.2024
@@ -41,7 +44,7 @@ Route::prefix('settings')->group(function () {
 });
 
 
-Route::middleware(['auth:sanctum'])->group(function(){
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::post('/update', [UserController::class, 'update']);
@@ -82,7 +85,12 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::get('delete', [UploadController::class, 'delete']);
         Route::post('upload-s3', [UploadController::class, 'uploadS3']);
     });
-    
+
+
+    Route::post('file/upload', [UploadController::class, 'store']);
+    Route::get('file/delete', [UploadController::class, 'delete']);
+    Route::get('file/upload-s3', [UploadController::class, 'uploadS3']);
+
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagController::class, 'index']);
         Route::get('/with-count', [TagController::class, 'getTagsWithCount']);
@@ -104,4 +112,3 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::post('/test-connection/{id}', [ProxyController::class, 'testConnection']);
     });
 });
-

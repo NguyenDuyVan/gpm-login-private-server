@@ -7,11 +7,20 @@ use App\Models\Group;
 use App\Models\GroupShare;
 use App\Models\ProfileShare;
 use App\Models\User;
+use App\Models\Tag;
+use App\Services\TagService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ProfileService
 {
+    protected $tagService;
+
+    public function __construct(TagService $tagService)
+    {
+        $this->tagService = $tagService;
+    }
+
     /**
      * Get profiles with filters and pagination
      *
@@ -33,8 +42,8 @@ class ProfileService
 
         // Default, show all active profiles (not soft deleted)
         $query = Profile::active()
-                        ->select($selectFields)
-                        ->with(['creator', 'lastRunUser', 'group']);
+            ->select($selectFields)
+            ->with(['creator', 'lastRunUser', 'group']);
 
         // If user isn't admin, show by permissions
         if (!$user->isAdmin()) {
@@ -46,10 +55,10 @@ class ProfileService
                     $subQuery->select('profiles.id')
                         ->from('profiles')
                         ->join('profile_shares', 'profiles.id', '=', 'profile_shares.profile_id')
-                        ->where(function($q) use ($user, $groupShareIds) {
+                        ->where(function ($q) use ($user, $groupShareIds) {
                             $q->where('profile_shares.user_id', $user->id)
-                              ->orWhereIn('profiles.group_id', $groupShareIds)
-                              ->orWhere('profiles.created_by', $user->id);
+                                ->orWhereIn('profiles.group_id', $groupShareIds)
+                                ->orWhere('profiles.created_by', $user->id);
                         });
                 })
                 ->with(['creator', 'lastRunUser', 'group']);
@@ -104,7 +113,7 @@ class ProfileService
         // Filter by tags
         if (isset($filters['tags'])) {
             $tags = explode(",", $filters['tags']);
-            $query->whereHas('tags', function($q) use ($tags) {
+            $query->whereHas('tags', function ($q) use ($tags) {
                 $q->whereIn('name', $tags);
             });
         }
@@ -174,15 +183,15 @@ class ProfileService
     public function getProfile(int $id, User $user)
     {
         if (!$this->canAccessProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền với profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
-        return ['success' => true, 'message' => 'Thành công', 'data' => $profile];
+        return ['success' => true, 'message' => 'ok', 'data' => $profile];
     }
 
     /**
@@ -202,12 +211,12 @@ class ProfileService
     public function updateProfile(int $id, string $name, string $storagePath, array $jsonData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền sửa profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         $profile->name = $name;
@@ -219,7 +228,7 @@ class ProfileService
         $profile->last_run_by = $lastRunBy;
         $profile->save();
 
-        return ['success' => true, 'message' => 'OK', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -233,12 +242,12 @@ class ProfileService
     public function updateProfileStatus(int $id, int $status, User $user)
     {
         if (!$this->canAccessProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền update trạng thái profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_status', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // If user starts using profile
@@ -252,7 +261,7 @@ class ProfileService
             $profile->save();
         }
 
-        return ['success' => true, 'message' => 'Thành công', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -265,18 +274,18 @@ class ProfileService
     public function deleteProfile(int $id, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
-            return ['success' => false, 'message' => 'Không đủ quyền xóa profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
         }
 
         $profile = Profile::active()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // Soft delete the profile
         $profile->softDelete($user);
 
-        return ['success' => true, 'message' => 'Xóa thành công', 'data' => null];
+        return ['success' => true, 'message' => 'profile_deleted', 'data' => null];
     }
 
     /**
@@ -289,17 +298,17 @@ class ProfileService
     public function restoreProfile(int $id, User $user)
     {
         if (!$user->isAdmin() && !$user->isModerator()) {
-            return ['success' => false, 'message' => 'Không đủ quyền khôi phục profile', 'data' => null];
+            return ['success' => false, 'message' => 'insufficient_permission_profile_restore', 'data' => null];
         }
 
         $profile = Profile::deleted()->find($id);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại trong thùng rác', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found_in_trash', 'data' => null];
         }
 
         $profile->restore();
 
-        return ['success' => true, 'message' => 'Khôi phục thành công', 'data' => null];
+        return ['success' => true, 'message' => 'profile_restored', 'data' => null];
     }
 
     /**
@@ -311,8 +320,8 @@ class ProfileService
     public function getProfileShares(int $profileId)
     {
         return ProfileShare::where('profile_id', $profileId)
-                         ->with(['profile', 'user'])
-                         ->get();
+            ->with(['profile', 'user'])
+            ->get();
     }
 
     /**
@@ -329,35 +338,35 @@ class ProfileService
         // Validate shared user
         $sharedUser = User::find($userId);
         if ($sharedUser == null) {
-            return ['success' => false, 'message' => 'User ID không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
         }
 
         if ($sharedUser->isAdmin()) {
-            return ['success' => false, 'message' => 'Không cần set quyền cho Admin', 'data' => null];
+            return ['success' => false, 'message' => 'no_need_set_admin_permission', 'data' => null];
         }
 
         // Validate profile
         $profile = Profile::active()->find($profileId);
         if ($profile == null) {
-            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
         // Check permission
         if (!$currentUser->isAdmin() && $profile->created_by != $currentUser->id) {
-            return ['success' => false, 'message' => 'Bạn phải là người tạo profile', 'data' => null];
+            return ['success' => false, 'message' => 'owner_required', 'data' => null];
         }
 
         // Handle profile share
         $profileShare = ProfileShare::where('profile_id', $profileId)
-                                   ->where('user_id', $userId)
-                                   ->first();
+            ->where('user_id', $userId)
+            ->first();
 
         // If role is empty or invalid, remove the share
         if (empty($role) || !in_array($role, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT, ProfileShare::ROLE_VIEW])) {
             if ($profileShare != null) {
                 $profileShare->delete();
             }
-            return ['success' => true, 'message' => 'OK', 'data' => null];
+            return ['success' => true, 'message' => 'ok', 'data' => null];
         }
 
         // Create or update share
@@ -370,7 +379,7 @@ class ProfileService
         $profileShare->role = $role;
         $profileShare->save();
 
-        return ['success' => true, 'message' => 'OK', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
     /**
@@ -408,9 +417,9 @@ class ProfileService
 
         // Check profile shares with FULL access
         $profileShare = ProfileShare::where('user_id', $logonUser->id)
-                                   ->where('profile_id', $profileId)
-                                   ->where('role', ProfileShare::ROLE_FULL)
-                                   ->first();
+            ->where('profile_id', $profileId)
+            ->where('role', ProfileShare::ROLE_FULL)
+            ->first();
 
         if ($profileShare != null) {
             return true;
@@ -419,9 +428,9 @@ class ProfileService
         // Check group shares with FULL access
         if ($profile->group) {
             $groupShare = GroupShare::where('user_id', $logonUser->id)
-                                  ->where('group_id', $profile->group_id)
-                                  ->where('role', GroupShare::ROLE_FULL)
-                                  ->first();
+                ->where('group_id', $profile->group_id)
+                ->where('role', GroupShare::ROLE_FULL)
+                ->first();
             if ($groupShare != null) {
                 return true;
             }
@@ -455,8 +464,8 @@ class ProfileService
 
         // Check profile shares
         $profileShare = ProfileShare::where('user_id', $logonUser->id)
-                                   ->where('profile_id', $profileId)
-                                   ->first();
+            ->where('profile_id', $profileId)
+            ->first();
 
         if ($profileShare != null) {
             return true;
@@ -465,8 +474,8 @@ class ProfileService
         // Check group shares
         if ($profile->group) {
             $groupShare = GroupShare::where('user_id', $logonUser->id)
-                                  ->where('group_id', $profile->group_id)
-                                  ->first();
+                ->where('group_id', $profile->group_id)
+                ->first();
             if ($groupShare != null) {
                 return true;
             }
@@ -485,5 +494,160 @@ class ProfileService
     public function getProfileRoles(int $profileId)
     {
         return $this->getProfileShares($profileId);
+    }
+
+    /**
+     * Start using profile
+     *
+     * @param int $profileId
+     * @param int $userId
+     * @return array
+     */
+    public function startUsingProfile(int $profileId, int $userId)
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
+        }
+
+        if (!$this->canAccessProfile($profileId, $user)) {
+            return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
+        }
+
+        $profile = Profile::active()->find($profileId);
+        if (!$profile) {
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
+        }
+
+        // Check if profile is already in use by someone else
+        if ($profile->isInUse() && $profile->using_by != $userId) {
+            return ['success' => false, 'message' => 'profile_in_use_by_others', 'data' => null];
+        }
+
+        // Mark profile as in use
+        $profile->markAsInUse($user);
+        $profile->recordUsage($user);
+
+        return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+    /**
+     * Stop using profile
+     *
+     * @param int $profileId
+     * @param int $userId
+     * @return array
+     */
+    public function stopUsingProfile(int $profileId, int $userId)
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
+        }
+
+        if (!$this->canAccessProfile($profileId, $user)) {
+            return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
+        }
+
+        $profile = Profile::active()->find($profileId);
+        if (!$profile) {
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
+        }
+
+        // Only allow user to stop using if they are the current user
+        if ($profile->using_by != $userId) {
+            return ['success' => false, 'message' => 'profile_not_current_user', 'data' => null];
+        }
+
+        // Mark profile as ready
+        $profile->markAsReady();
+
+        return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+    /**
+     * Add tags to profile
+     *
+     * @param int $profileId
+     * @param array $tagNames
+     * @param User $user
+     * @return array
+     */
+    public function addTagsToProfile(int $profileId, array $tagNames, User $user)
+    {
+        try {
+            if (!$this->canModifyProfile($profileId, $user)) {
+                return ['success' => false, 'message' => 'insufficient_permission_profile_tags', 'data' => null];
+            }
+
+            $profile = Profile::active()->find($profileId);
+            if (!$profile) {
+                return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
+            }
+
+            if (empty($tagNames)) {
+                return ['success' => false, 'message' => 'tag_list_empty', 'data' => null];
+            }
+
+            // Find or create tags
+            $tags = $this->tagService->findOrCreateTags($tagNames, $user->id);
+            $tagIds = collect($tags)->pluck('id')->toArray();
+
+            // Attach tags to profile (avoid duplicates)
+            $profile->tags()->syncWithoutDetaching($tagIds);
+
+            return [
+                'success' => true,
+                'message' => 'ok',
+                'data' => $profile->load(['tags', 'creator', 'group'])
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'error_with_details',
+                'data' => null
+            ];
+        }
+    }
+
+    /**
+     * Remove tags from profile
+     *
+     * @param int $profileId
+     * @param array $tagIds
+     * @param User $user
+     * @return array
+     */
+    public function removeTagsFromProfile(int $profileId, array $tagIds, User $user)
+    {
+        try {
+            if (!$this->canModifyProfile($profileId, $user)) {
+                return ['success' => false, 'message' => 'insufficient_permission_profile_remove_tags', 'data' => null];
+            }
+
+            $profile = Profile::active()->find($profileId);
+            if (!$profile) {
+                return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
+            }
+
+            if (empty($tagIds)) {
+                return ['success' => false, 'message' => 'tag_id_list_empty', 'data' => null];
+            }
+
+            // Remove tags from profile
+            $profile->tags()->detach($tagIds);
+
+            return [
+                'success' => true,
+                'message' => 'ok',
+                'data' => $profile->load(['tags', 'creator', 'group'])
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'error_with_details',
+                'data' => null
+            ];
+        }
     }
 }

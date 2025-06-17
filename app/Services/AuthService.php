@@ -35,7 +35,7 @@ class AuthService
         $token = $user->createToken('token');
         $resp = ['token' => $token->plainTextToken];
 
-        return ['success' => true, 'message' => 'Đăng nhập thành công', 'data' => $resp];
+        return ['success' => true, 'message' => 'ok', 'data' => $resp];
     }
 
     function isHashed($password)
@@ -53,6 +53,6 @@ class AuthService
     {
         $user->tokens()->delete();
 
-        return ['success' => true, 'message' => 'Đăng xuất thành công', 'data' => null];
+        return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 }

@@ -35,7 +35,7 @@ class TagService
             if ($existingTag) {
                 return [
                     'success' => false,
-                    'message' => 'Tag với tên này đã tồn tại',
+                    'message' => 'tag_name_exists',
                     'data' => null
                 ];
             }
@@ -48,14 +48,14 @@ class TagService
 
             return [
                 'success' => true,
-                'message' => 'Tạo tag thành công',
+                'message' => 'tag_created',
                 'data' => $tag
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -70,7 +70,7 @@ class TagService
             if (!$tag) {
                 return [
                     'success' => false,
-                    'message' => 'Tag không tồn tại',
+                    'message' => 'tag_not_found',
                     'data' => null
                 ];
             }
@@ -79,7 +79,7 @@ class TagService
             if (!$this->canManageTag($user, $tag)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền cập nhật tag này',
+                    'message' => 'insufficient_permission_tag_edit',
                     'data' => null
                 ];
             }
@@ -89,7 +89,7 @@ class TagService
             if ($existingTag) {
                 return [
                     'success' => false,
-                    'message' => 'Tag với tên này đã tồn tại',
+                    'message' => 'tag_name_exists',
                     'data' => null
                 ];
             }
@@ -101,14 +101,14 @@ class TagService
 
             return [
                 'success' => true,
-                'message' => 'Cập nhật tag thành công',
+                'message' => 'tag_updated',
                 'data' => $tag
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
@@ -123,7 +123,7 @@ class TagService
             if (!$tag) {
                 return [
                     'success' => false,
-                    'message' => 'Tag không tồn tại',
+                    'message' => 'tag_not_found',
                     'data' => null
                 ];
             }
@@ -132,7 +132,7 @@ class TagService
             if (!$this->canManageTag($user, $tag)) {
                 return [
                     'success' => false,
-                    'message' => 'Bạn không có quyền xóa tag này',
+                    'message' => 'insufficient_permission_tag_delete',
                     'data' => null
                 ];
             }
@@ -144,7 +144,7 @@ class TagService
             if ($profileTagsCount > 0 || $proxyTagsCount > 0) {
                 return [
                     'success' => false,
-                    'message' => 'Không thể xóa tag này vì đang được sử dụng',
+                    'message' => 'tag_in_use',
                     'data' => null
                 ];
             }
@@ -153,14 +153,14 @@ class TagService
 
             return [
                 'success' => true,
-                'message' => 'Xóa tag thành công',
+                'message' => 'tag_deleted',
                 'data' => null
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }
