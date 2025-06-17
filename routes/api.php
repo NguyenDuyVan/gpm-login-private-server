@@ -82,7 +82,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('delete', [UploadController::class, 'delete']);
         Route::post('upload-s3', [UploadController::class, 'uploadS3']);
     });
-    
+
+
+    Route::post('file/upload', [UploadController::class, 'store']);
+    Route::get('file/delete', [UploadController::class, 'delete']);
+    Route::get('file/upload-s3', [UploadController::class, 'uploadS3']);
+
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagController::class, 'index']);
         Route::get('/with-count', [TagController::class, 'getTagsWithCount']);

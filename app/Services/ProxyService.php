@@ -29,7 +29,7 @@ class ProxyService
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('host', 'like', "%{$search}%");
+                    ->orWhere('host', 'like', "%{$search}%");
             });
         }
 

@@ -38,10 +38,10 @@
     <!-- Show progress -->
     <arg value="p"/>
     <arg value="s"/>
-    
+
     <!-- Use colors in output -->
     <arg name="colors"/>
-    
+
     <!-- Show sniff codes in all reports -->
     <arg value="n"/>
 </ruleset>
