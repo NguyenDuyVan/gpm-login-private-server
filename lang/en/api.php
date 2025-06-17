@@ -98,6 +98,18 @@ return [
     's3_settings_error' => 'Error updating S3 settings',
     's3_settings_incomplete' => 'S3 API settings incomplete',
 
+    // S3 Presigned URL
+    's3_presigned_url_cached' => 'Presigned URL retrieved from cache',
+    's3_presigned_url_generated' => 'New presigned URL generated',
+    's3_presigned_url_invalid_type' => 'Invalid type parameter. Must be get or post.',
+    's3_presigned_url_missing_params' => 'Missing required parameters: type and session_id',
+    's3_presigned_url_config_not_found' => 'S3 configuration not found',
+    's3_presigned_url_config_incomplete' => 'S3 configuration is incomplete. Please check your S3 settings.',
+    's3_presigned_url_generation_success' => 'Presigned URL generated successfully',
+    's3_presigned_url_generation_error' => 'Error generating presigned URL',
+    's3_presigned_url_cache_cleared' => 'Cache cleared successfully',
+    's3_presigned_url_cache_clear_error' => 'Error clearing cache',
+
     // System
     'database_connection_failed' => 'Database connection failed. Please check configuration in .env file',
     'setup_success' => 'Setup completed successfully',

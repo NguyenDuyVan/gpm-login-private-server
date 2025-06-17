@@ -98,6 +98,18 @@ return [
     's3_settings_error' => 'Lỗi khi cập nhật S3 settings',
     's3_settings_incomplete' => 'Chưa cài đặt đủ thông tin S3 API',
 
+    // S3 Presigned URL
+    's3_presigned_url_cached' => 'Lấy presigned URL từ cache',
+    's3_presigned_url_generated' => 'Tạo presigned URL mới',
+    's3_presigned_url_invalid_type' => 'Tham số type không hợp lệ. Phải là get hoặc post.',
+    's3_presigned_url_missing_params' => 'Thiếu tham số bắt buộc: type và session_id',
+    's3_presigned_url_config_not_found' => 'Không tìm thấy cấu hình S3',
+    's3_presigned_url_config_incomplete' => 'Cấu hình S3 chưa đầy đủ. Vui lòng kiểm tra cài đặt S3.',
+    's3_presigned_url_generation_success' => 'Tạo presigned URL thành công',
+    's3_presigned_url_generation_error' => 'Lỗi khi tạo presigned URL',
+    's3_presigned_url_cache_cleared' => 'Xóa cache thành công',
+    's3_presigned_url_cache_clear_error' => 'Lỗi khi xóa cache',
+
     // System
     'database_connection_failed' => 'Không kết nối được đến database. Vui lòng kiểm tra cấu hình trong file .env',
     'setup_success' => 'Thiết lập hoàn tất thành công',
