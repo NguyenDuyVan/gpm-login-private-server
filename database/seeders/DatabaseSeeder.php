@@ -30,6 +30,10 @@ class DatabaseSeeder extends Seeder
             'is_active' => true
         ]);
 
+        Group::factory()->create([
+            'name' => 'All',
+        ]);
+
         Group::factory(5)->create();
     }
 }

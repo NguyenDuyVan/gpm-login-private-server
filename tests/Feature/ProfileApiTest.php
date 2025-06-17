@@ -7,6 +7,8 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Group;
+use App\Models\GroupShare;
+use App\Models\ProfileShare;
 
 class ProfileApiTest extends TestCase
 {
@@ -14,11 +16,23 @@ class ProfileApiTest extends TestCase
 
     private $user;
     private $token;
+    private $searchKeyword = 'Test Profile';
+    private $searchAuthor = 'ABCĐE John Doe';
+
+    private $filterGroupId = 2;
+    static $profileTestCreated = false;
 
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->auth();
+
+        $this->initProfiles();
+    }
+
+    function auth()
+    {
         // Create a test user
         $email = 'test@example.com';
         $existingUser = User::where('email', $email)->first();
@@ -35,44 +49,64 @@ class ProfileApiTest extends TestCase
 
         // Create a token for authentication
         $this->token = $this->user->createToken('test-token')->plainTextToken;
-
-        // Create a test group if it doesn't exist
-        Group::firstOrCreate([
-            'id' => 1
-        ], [
-            'name' => 'Test Group',
-            'sort_order' => 0,
-            'created_by' => $this->user->id
-        ]);
     }
 
+    function initProfiles()
+    {
+        if (!self::$profileTestCreated)
+        {
+            $this->createTestProfile($this->filterGroupId);
+            $this->createTestProfile($this->filterGroupId);
+            $this->createTestProfile($this->filterGroupId);
+
+            $user = User::factory()->create(['display_name' => $this->searchAuthor]);
+            Profile::factory()->create([
+                'name' => 'Profile Search Author',
+                'created_by' => $user->id
+            ]);
+            self::$profileTestCreated = true;
+        }
+    }
+
+    function countTotalProfileOfUser($userId)
+    {
+        $user = User::find($userId);
+        if($user->isAdmin())
+        {
+            return Profile::active()->count();
+        }
+
+        $groupShareIds          = GroupShare::where('invite_id', $userId)->select('group_id');     // Danh sách group id được chia sẻ
+
+        $selfCreatedProfileIds  = Profile::where('created_by', $userId)->select('id');             // Danh sách profile id tạo bởi user
+        $profileShareOverGroups = Profile::whereIn('group_id', $groupShareIds)->select('id');      // Danh sách profile id chia sẻ qua group
+        $profileShareIds        = ProfileShare::where('invite_id', $userId)->select('profile_id'); // Danh sách profile id chia sẻ qua profile share
+        
+        $allProfileIds = collect($selfCreatedProfileIds)
+                        ->merge($profileShareOverGroups)
+                        ->merge($profileShareIds)
+                        ->unique();
+
+        return $allProfileIds->count();
+    }
     /** @test */
-    public function itCanListProfiles()
+    public function checkNeedAuthentication()
     {
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $this->token,
             'Accept' => 'application/json'
         ])->get('/api/profiles');
 
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [
-                    'current_page',
-                    'data',
-                    'total'
-                ]
-            ]);
-
-        $this->assertTrue($response->json('success'));
+        $response->assertStatus(401);
+        $this->assertEquals('Unauthenticated.', $response->json('message'));
+        $this->assertFalse($response['success']);
     }
-
+    
     /** @test */
     public function itCanCreateAProfile()
     {
+        $profileName = 'itCanCreateAProfile';
         $profileData = [
-            'name' => 'Test Profile',
+            'name' => $profileName,
             'storage_path' => '/test/path',
             'json_data' => ['browser' => 'chrome'],
             'cookie_data' => ['session' => 'test'],
@@ -101,7 +135,7 @@ class ProfileApiTest extends TestCase
             ]);
 
         $this->assertTrue($response->json('success'));
-        $this->assertEquals('Test Profile', $response->json('data.name'));
+        $this->assertEquals($profileName, $response->json('data.name'));
         $this->assertEquals('/test/path', $response->json('data.storage_path'));
     }
 
@@ -109,7 +143,7 @@ class ProfileApiTest extends TestCase
     public function itCanShowASpecificProfile()
     {
         // Create a profile first
-        $profile = $this->createTestProfile();
+        $profile = $this->createTestProfile(name: 'itCanShowASpecificProfile');
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
@@ -135,14 +169,14 @@ class ProfileApiTest extends TestCase
     public function itCanUpdateAProfile()
     {
         // Create a profile first
-        $profile = $this->createTestProfile();
+        $profile = $this->createTestProfile(name: 'itCanUpdateAProfile');
 
         $updateData = [
             'name' => 'Updated Profile Name',
             'storage_path' => '/updated/path',
             'json_data' => ['browser' => 'firefox'],
             'meta_data' => ['updated' => true],
-            'group_id' => 1
+            'group_id' => $this->filterGroupId
         ];
 
         $response = $this->withHeaders([
@@ -154,16 +188,114 @@ class ProfileApiTest extends TestCase
                  ->assertJson(['success' => true]);
 
         // Verify the profile was updated
-        $profile->refresh();
+        $profile = Profile::find($profile->id);
         $this->assertEquals('Updated Profile Name', $profile->name);
         $this->assertEquals('/updated/path', $profile->storage_path);
+    }
+
+    /** @test */
+    public function itCanListProfiles()
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->get('/api/profiles');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'current_page',
+                    'data',
+                    'total'
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $count = $this->countTotalProfileOfUser($this->user->id);
+        $this->assertEquals($count, $response->json('data.total'));
+    }
+
+    /** @test */
+    public function itCanListProfilesWithSearch()
+    {
+        $keyword = 'Test Profile';
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->get('/api/profiles?search=' . $keyword);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'current_page',
+                    'data',
+                    'total'
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $groupCount = Profile::where('name', 'like', '%' . $keyword . '%')->count();
+        $this->assertEquals($groupCount, $response->json('data.total'));
+    }
+
+    /** @test */
+    public function itCanListProfilesWithAuthorSearch()
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->get('/api/profiles?search=' . urlencode($this->searchAuthor));
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'current_page',
+                    'data',
+                    'total'
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $this->assertEquals(1, $response->json('data.total'));
+    }
+
+    /** @test */
+    public function itCanListProfilesWithFilterGroupId()
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->get('/api/profiles?group_id=' . $this->filterGroupId);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'current_page',
+                    'data',
+                    'total'
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $groupCount = Profile::where('group_id', $this->filterGroupId)
+            ->where('created_by', $this->user->id)
+            ->count();
+        $this->assertEquals($groupCount, $response->json('data.total'));
     }
 
     /** @test */
     public function itCanDeleteAProfile()
     {
         // Create a profile first
-        $profile = $this->createTestProfile();
+        $profile = $this->createTestProfile(name: 'itCanDeleteAProfile');
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
@@ -181,10 +313,6 @@ class ProfileApiTest extends TestCase
     /** @test */
     public function itCanGetProfileCount()
     {
-        // Create a few profiles
-        $this->createTestProfile();
-        $this->createTestProfile();
-
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
             'Accept' => 'application/json'
@@ -201,6 +329,7 @@ class ProfileApiTest extends TestCase
 
         $this->assertTrue($response->json('success'));
         $this->assertIsInt($response->json('data.total'));
+        $this->assertEquals(Profile::active()->count(), $response->json('data.total'));
     }
 
     /** @test */
@@ -230,14 +359,14 @@ class ProfileApiTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 500]), 'Response status should be 200 or 500');
     }
 
-    private function createTestProfile()
+    private function createTestProfile($groupId = 1, $name=null)
     {
         return Profile::create([
-            'name' => 'Test Profile ' . $this->faker->uuid,
+            'name' => $name ?? ('Test Profile ' . $this->faker->uuid),
             'storage_path' => '/test/path/' . $this->faker->uuid,
             'json_data' => ['browser' => 'chrome'],
             'meta_data' => ['test' => true],
-            'group_id' => 1,
+            'group_id' => $groupId,
             'created_by' => $this->user->id,
             'storage_type' => 'S3',
             'status' => 1,

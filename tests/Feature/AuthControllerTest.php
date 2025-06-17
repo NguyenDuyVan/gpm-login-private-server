@@ -14,30 +14,6 @@ class AuthControllerTest extends TestCase
     // use RefreshDatabase;
     // use CreatesApplication;
 
-    protected static $migrated = false;
-    
-    /**
-     * A basic feature test example.
-     *
-     * @return void
-     */
-    public function test_example()
-    {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (!self::$migrated) {
-            Artisan::call('migrate:fresh', ['--seed' => true]);
-            self::$migrated = true;
-        }
-    }
-
     /** @test */
     public function it_registers_a_user_successfully()
     {
@@ -58,6 +34,22 @@ class AuthControllerTest extends TestCase
             'display_name' => 'Test User',
             'is_active' => 0,
         ]);
+    }
+
+    /** @test */
+    public function it_registers_a_duplicate_user()
+    {
+        $user_name = 'Administrator';
+        $payload = [
+            'user_name' => $user_name,
+            'display_name' => 'Test User',
+            'password' => '123456',
+        ];
+
+        $response = $this->postJson('/api/users/register', $payload);
+
+        $response->assertStatus(200)
+                 ->assertJson(['success' => false]);
     }
 
     /** @test */
