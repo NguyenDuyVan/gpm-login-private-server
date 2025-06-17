@@ -48,18 +48,14 @@ class ProfileService
         // If user isn't admin, show by permissions
         if (!$user->isAdmin()) {
             $groupShareIds = DB::table('group_shares')->where('user_id', $user->id)->pluck('group_id');
+            $profileShareIds = DB::table('profile_shares')->where('user_id', $user->id)->pluck('profile_id');
 
             $query = Profile::active()
                 ->select($selectFields)
-                ->whereIn('id', function ($subQuery) use ($user, $groupShareIds) {
-                    $subQuery->select('profiles.id')
-                        ->from('profiles')
-                        ->join('profile_shares', 'profiles.id', '=', 'profile_shares.profile_id')
-                        ->where(function ($q) use ($user, $groupShareIds) {
-                            $q->where('profile_shares.user_id', $user->id)
-                                ->orWhereIn('profiles.group_id', $groupShareIds)
-                                ->orWhere('profiles.created_by', $user->id);
-                        });
+                ->where(function ($q) use ($user, $groupShareIds, $profileShareIds) {
+                    $q->where('created_by', $user->id)
+                        ->orWhereIn('group_id', $groupShareIds)
+                        ->orWhereIn('id', $profileShareIds);
                 })
                 ->with(['creator', 'lastRunUser', 'group']);
         }
@@ -90,14 +86,20 @@ class ProfileService
 
         // Search
         if (isset($filters['search'])) {
-            if (!str_contains($filters['search'], 'author:')) {
-                $query->where('name', 'like', "%{$filters['search']}%");
-            } else {
+            if (str_contains($filters['search'], 'author:')) {
                 $authorName = str_replace('author:', '', $filters['search']);
                 $createdUser = User::where('display_name', $authorName)->first();
                 if ($createdUser != null) {
                     $query->where('created_by', $createdUser->id);
                 }
+            } else {
+                $query->where(function ($q) use ($filters) {
+                    $q->where('name', 'like', "%{$filters['search']}%");
+                    $authorUser = User::where('display_name', $filters['search'])->first();
+                    if ($authorUser) {
+                        $q->orWhere('created_by', $authorUser->id);
+                    }
+                });
             }
         }
 

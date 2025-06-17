@@ -39,7 +39,7 @@ class ProfileApiTest extends TestCase
         if (!$existingUser) {
             $this->user = User::factory()->create([
                 'email' => $email,
-                'password' => bcrypt('password'), 
+                'password' => bcrypt('password'),
                 'system_role' => 'USER',
                 'is_active' => true
             ]);
@@ -53,16 +53,20 @@ class ProfileApiTest extends TestCase
 
     function initProfiles()
     {
-        if (!self::$profileTestCreated)
-        {
+        if (!self::$profileTestCreated) {
             $this->createTestProfile($this->filterGroupId);
             $this->createTestProfile($this->filterGroupId);
             $this->createTestProfile($this->filterGroupId);
 
             $user = User::factory()->create(['display_name' => $this->searchAuthor]);
-            Profile::factory()->create([
+            $authorProfile = Profile::factory()->create([
                 'name' => 'Profile Search Author',
                 'created_by' => $user->id
+            ]);
+            ProfileShare::create([
+                'profile_id' => $authorProfile->id,
+                'user_id' => $this->user->id,
+                'role' => ProfileShare::ROLE_VIEW
             ]);
             self::$profileTestCreated = true;
         }
@@ -71,21 +75,20 @@ class ProfileApiTest extends TestCase
     function countTotalProfileOfUser($userId)
     {
         $user = User::find($userId);
-        if($user->isAdmin())
-        {
+        if ($user->isAdmin()) {
             return Profile::active()->count();
         }
 
-        $groupShareIds          = GroupShare::where('invite_id', $userId)->select('group_id');     // Danh sách group id được chia sẻ
+        $groupShareIds = GroupShare::where('user_id', $userId)->pluck('group_id');     // Danh sách group id được chia sẻ
 
-        $selfCreatedProfileIds  = Profile::where('created_by', $userId)->select('id');             // Danh sách profile id tạo bởi user
-        $profileShareOverGroups = Profile::whereIn('group_id', $groupShareIds)->select('id');      // Danh sách profile id chia sẻ qua group
-        $profileShareIds        = ProfileShare::where('invite_id', $userId)->select('profile_id'); // Danh sách profile id chia sẻ qua profile share
+        $selfCreatedProfileIds = Profile::where('created_by', $userId)->where('is_deleted', false)->pluck('id');             // Danh sách profile id tạo bởi user
+        $profileShareOverGroups = Profile::whereIn('group_id', $groupShareIds)->where('is_deleted', false)->pluck('id');      // Danh sách profile id chia sẻ qua group
+        $profileShareIds = ProfileShare::where('user_id', $userId)->pluck('profile_id'); // Danh sách profile id chia sẻ qua profile share
 
         $allProfileIds = collect($selfCreatedProfileIds)
-                        ->merge($profileShareOverGroups)
-                        ->merge($profileShareIds)
-                        ->unique();
+            ->merge($profileShareOverGroups)
+            ->merge($profileShareIds)
+            ->unique();
 
         return $allProfileIds->count();
     }
@@ -100,7 +103,7 @@ class ProfileApiTest extends TestCase
         $this->assertEquals('Unauthenticated.', $response->json('message'));
         $this->assertFalse($response['success']);
     }
-    
+
     /** @test */
     public function itCanCreateAProfile()
     {
@@ -185,7 +188,7 @@ class ProfileApiTest extends TestCase
         ])->post('/api/profiles/update/' . $profile->id, $updateData);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         // Verify the profile was updated
         $profile = Profile::find($profile->id);
@@ -303,7 +306,7 @@ class ProfileApiTest extends TestCase
         ])->get('/api/profiles/delete/' . $profile->id);
 
         $response->assertStatus(200)
-                  ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         // Verify the profile was soft deleted
         $profile->refresh();
@@ -359,7 +362,7 @@ class ProfileApiTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 500]), 'Response status should be 200 or 500');
     }
 
-    private function createTestProfile($groupId = 1, $name=null)
+    private function createTestProfile($groupId = 1, $name = null)
     {
         return Profile::create([
             'name' => $name ?? ('Test Profile ' . $this->faker->uuid),
