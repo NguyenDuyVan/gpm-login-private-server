@@ -14,12 +14,15 @@ use App\Http\Controllers\HomeController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API V1 Routes (Default)
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
+| These routes are available at both:
+| - /api/* (for backward compatibility)
+| - /api/v1/* (versioned endpoint)
+|
+| When adding new features, consider adding them to api_v2.php instead
+| to maintain backward compatibility with existing applications.
 |
 */
 
