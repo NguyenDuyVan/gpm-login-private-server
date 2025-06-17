@@ -14,8 +14,8 @@ class ProfileApiTest extends TestCase
 {
     use WithFaker;
 
-    private $user;
-    private $token;
+    protected $user;
+    protected $token;
     private $searchKeyword = 'Test Profile';
     private $searchAuthor = 'ABCĐE John Doe';
 
@@ -31,7 +31,7 @@ class ProfileApiTest extends TestCase
         $this->initProfiles();
     }
 
-    function auth()
+    protected function auth()
     {
         // Create a test user
         $email = 'test@example.com';
@@ -81,7 +81,7 @@ class ProfileApiTest extends TestCase
         $selfCreatedProfileIds  = Profile::where('created_by', $userId)->select('id');             // Danh sách profile id tạo bởi user
         $profileShareOverGroups = Profile::whereIn('group_id', $groupShareIds)->select('id');      // Danh sách profile id chia sẻ qua group
         $profileShareIds        = ProfileShare::where('invite_id', $userId)->select('profile_id'); // Danh sách profile id chia sẻ qua profile share
-        
+
         $allProfileIds = collect($selfCreatedProfileIds)
                         ->merge($profileShareOverGroups)
                         ->merge($profileShareIds)
