@@ -43,7 +43,6 @@ class UpdateService
                 'success' => true,
                 'message' => 'Update completed successfully: version ' . \App\Http\Controllers\Api\SettingController::$server_version
             ];
-
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
         }

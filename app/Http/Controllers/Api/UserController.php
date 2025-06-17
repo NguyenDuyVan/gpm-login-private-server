@@ -66,7 +66,8 @@ class UserController extends BaseController
     /**
      * Get current user
      */
-    public function getCurrentUser(Request $request){
+    public function getCurrentUser(Request $request)
+    {
         $user = $request->user();
         return $this->getJsonResponse(true, 'OK', $user);
     }

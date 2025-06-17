@@ -81,7 +81,6 @@ class SetupService
                 'success' => true,
                 'message' => "Tạo thành công<br><br>Tài khoản admin mặc định: <b>{$firstUser->user_name}</b> / <b>{$firstUser->password}</b><br>Bạn có thể đổi mật khẩu trên giao diện GPM-Login<br><br><br><br><a href='/'>Về trang chủ</a>"
             ];
-
         } catch (\Exception $ex) {
             $msg = $ex->getMessage();
             return [

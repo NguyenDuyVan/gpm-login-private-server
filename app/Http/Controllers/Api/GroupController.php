@@ -39,8 +39,9 @@ class GroupController extends BaseController
     {
         $user = $request->user();
 
-        if (!$this->groupService->hasAdminPermission($user))
+        if (!$this->groupService->hasAdminPermission($user)) {
             return $this->getJsonResponse(false, 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!', null);
+        }
 
         $group = $this->groupService->createGroup(
             $request->name,
@@ -73,8 +74,9 @@ class GroupController extends BaseController
     {
         $user = $request->user();
 
-        if (!$this->groupService->hasAdminPermission($user))
+        if (!$this->groupService->hasAdminPermission($user)) {
             return $this->getJsonResponse(false, 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!', null);
+        }
 
         $group = $this->groupService->updateGroup(
             $id,
@@ -83,8 +85,9 @@ class GroupController extends BaseController
             $user->id
         );
 
-        if ($group == null)
+        if ($group == null) {
             return $this->getJsonResponse(false, 'Group không tồn tại', null);
+        }
 
         return $this->getJsonResponse(true, 'Cập nhật thành công', null);
     }
@@ -99,8 +102,9 @@ class GroupController extends BaseController
     {
         $user = $request->user();
 
-        if (!$this->groupService->hasAdminPermission($user))
+        if (!$this->groupService->hasAdminPermission($user)) {
             return $this->getJsonResponse(false, 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!', null);
+        }
 
         $result = $this->groupService->deleteGroup($id);
 

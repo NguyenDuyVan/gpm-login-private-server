@@ -20,8 +20,8 @@ class WebAuthService
     {
         // Find active user by email
         $user = User::where('email', $email)
-                   ->where('is_active', true)
-                   ->first();
+            ->where('is_active', true)
+            ->first();
 
         // Check password has not been hashed (Old version)
         if ($user != null && !$this->isHashed($user->password) && $user->password == $password) {

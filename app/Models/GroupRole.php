@@ -13,11 +13,13 @@ class GroupRole extends Model
 
     protected $table = 'group_roles';
 
-    public function group(){
+    public function group()
+    {
         return $this->hasOne(Group::class, 'id', 'group_id');
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->hasOne(User::class, 'id', 'user_id');
     }
 }

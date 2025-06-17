@@ -41,7 +41,7 @@ Route::prefix('settings')->group(function () {
 });
 
 
-Route::middleware(['auth:sanctum'])->group(function(){
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::post('/update', [UserController::class, 'update']);
@@ -104,4 +104,3 @@ Route::middleware(['auth:sanctum'])->group(function(){
         Route::post('/test-connection/{id}', [ProxyController::class, 'testConnection']);
     });
 });
-

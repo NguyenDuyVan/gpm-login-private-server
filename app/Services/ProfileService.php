@@ -7,11 +7,20 @@ use App\Models\Group;
 use App\Models\GroupShare;
 use App\Models\ProfileShare;
 use App\Models\User;
+use App\Models\Tag;
+use App\Services\TagService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ProfileService
 {
+    protected $tagService;
+
+    public function __construct(TagService $tagService)
+    {
+        $this->tagService = $tagService;
+    }
+
     /**
      * Get profiles with filters and pagination
      *
@@ -33,8 +42,8 @@ class ProfileService
 
         // Default, show all active profiles (not soft deleted)
         $query = Profile::active()
-                        ->select($selectFields)
-                        ->with(['creator', 'lastRunUser', 'group']);
+            ->select($selectFields)
+            ->with(['creator', 'lastRunUser', 'group']);
 
         // If user isn't admin, show by permissions
         if (!$user->isAdmin()) {
@@ -46,10 +55,10 @@ class ProfileService
                     $subQuery->select('profiles.id')
                         ->from('profiles')
                         ->join('profile_shares', 'profiles.id', '=', 'profile_shares.profile_id')
-                        ->where(function($q) use ($user, $groupShareIds) {
+                        ->where(function ($q) use ($user, $groupShareIds) {
                             $q->where('profile_shares.user_id', $user->id)
-                              ->orWhereIn('profiles.group_id', $groupShareIds)
-                              ->orWhere('profiles.created_by', $user->id);
+                                ->orWhereIn('profiles.group_id', $groupShareIds)
+                                ->orWhere('profiles.created_by', $user->id);
                         });
                 })
                 ->with(['creator', 'lastRunUser', 'group']);
@@ -104,7 +113,7 @@ class ProfileService
         // Filter by tags
         if (isset($filters['tags'])) {
             $tags = explode(",", $filters['tags']);
-            $query->whereHas('tags', function($q) use ($tags) {
+            $query->whereHas('tags', function ($q) use ($tags) {
                 $q->whereIn('name', $tags);
             });
         }
@@ -311,8 +320,8 @@ class ProfileService
     public function getProfileShares(int $profileId)
     {
         return ProfileShare::where('profile_id', $profileId)
-                         ->with(['profile', 'user'])
-                         ->get();
+            ->with(['profile', 'user'])
+            ->get();
     }
 
     /**
@@ -349,8 +358,8 @@ class ProfileService
 
         // Handle profile share
         $profileShare = ProfileShare::where('profile_id', $profileId)
-                                   ->where('user_id', $userId)
-                                   ->first();
+            ->where('user_id', $userId)
+            ->first();
 
         // If role is empty or invalid, remove the share
         if (empty($role) || !in_array($role, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT, ProfileShare::ROLE_VIEW])) {
@@ -408,9 +417,9 @@ class ProfileService
 
         // Check profile shares with FULL access
         $profileShare = ProfileShare::where('user_id', $logonUser->id)
-                                   ->where('profile_id', $profileId)
-                                   ->where('role', ProfileShare::ROLE_FULL)
-                                   ->first();
+            ->where('profile_id', $profileId)
+            ->where('role', ProfileShare::ROLE_FULL)
+            ->first();
 
         if ($profileShare != null) {
             return true;
@@ -419,9 +428,9 @@ class ProfileService
         // Check group shares with FULL access
         if ($profile->group) {
             $groupShare = GroupShare::where('user_id', $logonUser->id)
-                                  ->where('group_id', $profile->group_id)
-                                  ->where('role', GroupShare::ROLE_FULL)
-                                  ->first();
+                ->where('group_id', $profile->group_id)
+                ->where('role', GroupShare::ROLE_FULL)
+                ->first();
             if ($groupShare != null) {
                 return true;
             }
@@ -455,8 +464,8 @@ class ProfileService
 
         // Check profile shares
         $profileShare = ProfileShare::where('user_id', $logonUser->id)
-                                   ->where('profile_id', $profileId)
-                                   ->first();
+            ->where('profile_id', $profileId)
+            ->first();
 
         if ($profileShare != null) {
             return true;
@@ -465,8 +474,8 @@ class ProfileService
         // Check group shares
         if ($profile->group) {
             $groupShare = GroupShare::where('user_id', $logonUser->id)
-                                  ->where('group_id', $profile->group_id)
-                                  ->first();
+                ->where('group_id', $profile->group_id)
+                ->first();
             if ($groupShare != null) {
                 return true;
             }
@@ -485,5 +494,160 @@ class ProfileService
     public function getProfileRoles(int $profileId)
     {
         return $this->getProfileShares($profileId);
+    }
+
+    /**
+     * Start using profile
+     *
+     * @param int $profileId
+     * @param int $userId
+     * @return array
+     */
+    public function startUsingProfile(int $profileId, int $userId)
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            return ['success' => false, 'message' => 'User không tồn tại', 'data' => null];
+        }
+
+        if (!$this->canAccessProfile($profileId, $user)) {
+            return ['success' => false, 'message' => 'Không đủ quyền sử dụng profile', 'data' => null];
+        }
+
+        $profile = Profile::active()->find($profileId);
+        if (!$profile) {
+            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+        }
+
+        // Check if profile is already in use by someone else
+        if ($profile->isInUse() && $profile->using_by != $userId) {
+            return ['success' => false, 'message' => 'Profile đang được sử dụng bởi người khác', 'data' => null];
+        }
+
+        // Mark profile as in use
+        $profile->markAsInUse($user);
+        $profile->recordUsage($user);
+
+        return ['success' => true, 'message' => 'Bắt đầu sử dụng profile thành công', 'data' => null];
+    }
+
+    /**
+     * Stop using profile
+     *
+     * @param int $profileId
+     * @param int $userId
+     * @return array
+     */
+    public function stopUsingProfile(int $profileId, int $userId)
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            return ['success' => false, 'message' => 'User không tồn tại', 'data' => null];
+        }
+
+        if (!$this->canAccessProfile($profileId, $user)) {
+            return ['success' => false, 'message' => 'Không đủ quyền với profile', 'data' => null];
+        }
+
+        $profile = Profile::active()->find($profileId);
+        if (!$profile) {
+            return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+        }
+
+        // Only allow user to stop using if they are the current user
+        if ($profile->using_by != $userId) {
+            return ['success' => false, 'message' => 'Bạn không phải người đang sử dụng profile này', 'data' => null];
+        }
+
+        // Mark profile as ready
+        $profile->markAsReady();
+
+        return ['success' => true, 'message' => 'Dừng sử dụng profile thành công', 'data' => null];
+    }
+
+    /**
+     * Add tags to profile
+     *
+     * @param int $profileId
+     * @param array $tagNames
+     * @param User $user
+     * @return array
+     */
+    public function addTagsToProfile(int $profileId, array $tagNames, User $user)
+    {
+        try {
+            if (!$this->canModifyProfile($profileId, $user)) {
+                return ['success' => false, 'message' => 'Không đủ quyền thêm tag cho profile', 'data' => null];
+            }
+
+            $profile = Profile::active()->find($profileId);
+            if (!$profile) {
+                return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            }
+
+            if (empty($tagNames)) {
+                return ['success' => false, 'message' => 'Danh sách tag không được để trống', 'data' => null];
+            }
+
+            // Find or create tags
+            $tags = $this->tagService->findOrCreateTags($tagNames, $user->id);
+            $tagIds = collect($tags)->pluck('id')->toArray();
+
+            // Attach tags to profile (avoid duplicates)
+            $profile->tags()->syncWithoutDetaching($tagIds);
+
+            return [
+                'success' => true,
+                'message' => 'Thêm tag thành công',
+                'data' => $profile->load(['tags', 'creator', 'group'])
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
+    }
+
+    /**
+     * Remove tags from profile
+     *
+     * @param int $profileId
+     * @param array $tagIds
+     * @param User $user
+     * @return array
+     */
+    public function removeTagsFromProfile(int $profileId, array $tagIds, User $user)
+    {
+        try {
+            if (!$this->canModifyProfile($profileId, $user)) {
+                return ['success' => false, 'message' => 'Không đủ quyền xóa tag khỏi profile', 'data' => null];
+            }
+
+            $profile = Profile::active()->find($profileId);
+            if (!$profile) {
+                return ['success' => false, 'message' => 'Profile không tồn tại', 'data' => null];
+            }
+
+            if (empty($tagIds)) {
+                return ['success' => false, 'message' => 'Danh sách tag ID không được để trống', 'data' => null];
+            }
+
+            // Remove tags from profile
+            $profile->tags()->detach($tagIds);
+
+            return [
+                'success' => true,
+                'message' => 'Xóa tag thành công',
+                'data' => $profile->load(['tags', 'creator', 'group'])
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
     }
 }

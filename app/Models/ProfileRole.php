@@ -13,11 +13,13 @@ class ProfileRole extends Model
 
     protected $table = 'profile_roles';
 
-    public function profile(){
+    public function profile()
+    {
         return $this->hasOne(Profile::class, 'id', 'profile_id');
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->hasOne(User::class, 'id', 'user_id');
     }
 }

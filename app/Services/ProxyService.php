@@ -27,7 +27,7 @@ class ProxyService
         // Apply search filter
         if (!empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('host', 'like', "%{$search}%");
             });
@@ -36,7 +36,7 @@ class ProxyService
         // Apply tag filter
         if (!empty($filters['tags'])) {
             $tagIds = is_array($filters['tags']) ? $filters['tags'] : explode(',', $filters['tags']);
-            $query->whereHas('tags', function($q) use ($tagIds) {
+            $query->whereHas('tags', function ($q) use ($tagIds) {
                 $q->whereIn('tags.id', $tagIds);
             });
         }
@@ -128,7 +128,7 @@ class ProxyService
     /**
      * Update proxy
      */
-    public function updateProxy($id, $name, $host, $port, $username = null, $password = null, $type = null, User $user)
+    public function updateProxy($id, $name, $host, $port, User $user, $username = null, $password = null, $type = null)
     {
         try {
             $proxy = Proxy::find($id);
@@ -409,7 +409,6 @@ class ProxyService
                     'data' => null
                 ];
             }
-
         } catch (\Exception $e) {
             return [
                 'success' => false,
