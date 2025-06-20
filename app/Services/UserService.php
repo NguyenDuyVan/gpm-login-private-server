@@ -37,7 +37,7 @@ class UserService
     {
         // Check if email already exists
         if (User::where('email', strtolower($email))->count() > 0) {
-            return ['success' => false, 'message' => 'email_exists', 'data' => null];
+            return ['success' => false, 'message' => 'AccountExisted', 'data' => null];
         }
 
         $user = new User();
@@ -48,7 +48,7 @@ class UserService
         $user->is_active = false; // New users are inactive until activated
         $user->save();
 
-        return ['success' => true, 'message' => 'ok', 'data' => $user];
+        return ['success' => true, 'message' => 'RegisterSuccessfully', 'data' => $user];
     }
 
     /**

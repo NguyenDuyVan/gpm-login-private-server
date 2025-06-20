@@ -10,12 +10,10 @@ class GroupService
 {
     /**
      * Get all groups (excluding trash group with id = 0)
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getAllGroups()
     {
-        return Group::where('id', '!=', 0)->orderBy('sort_order')->get();
+        return Group::where('id', '!=', 0)->orderBy('sort_order')->paginate(1000);
     }
 
     /**
