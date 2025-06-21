@@ -16,7 +16,7 @@ return new class extends Migration
     {
         Schema::table('proxies', function (Blueprint $table) {
             // Add the new columns
-            $table->text('raw_proxy')->nullable()->after('id');
+            $table->string('raw_proxy', 255)->nullable()->after('id');
             $table->string('status')->default('active')->after('raw_proxy');
             $table->integer('updated_by')->nullable()->after('created_by');
         });

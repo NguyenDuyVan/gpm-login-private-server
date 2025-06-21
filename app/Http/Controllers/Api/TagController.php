@@ -10,7 +10,7 @@ use App\Services\TagService;
 
 class TagController extends BaseController
 {
-    protected $tagService;
+    protected TagService $tagService;
 
     public function __construct(TagService $tagService)
     {
@@ -24,8 +24,13 @@ class TagController extends BaseController
      */
     public function index(Request $request)
     {
-        $tags = $this->tagService->getAllTags();
-        return $this->getJsonResponse(true, 'OK', $tags);
+        $filters = [
+            'search' => $request->get('search'),
+            'per_page' => $request->get('per_page', 30)
+        ];
+
+        $result = $this->tagService->getAllTags($filters);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
     /**
