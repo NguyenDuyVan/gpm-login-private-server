@@ -384,6 +384,40 @@ class ProfileService
         return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
+    public function bulkShareProfile(array $profileIds, int $userId, string $role, User $currentUser)
+    {
+        // Validate shared user
+        $sharedUser = User::find($userId);
+        if ($sharedUser == null) {
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
+        }
+
+        if ($sharedUser->isAdmin()) {
+            return ['success' => false, 'message' => 'no_need_set_admin_permission', 'data' => null];
+        }
+
+        // Validate profile
+        $profiles = Profile::active()->whereIn('id', $profileIds)->get();
+
+        $count = 0;
+        foreach ($profiles as $profile) {
+            $result = $this->shareProfile($profile->id, $userId, $role, $currentUser);
+            if ($result['success']) {
+                $count++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'ok',
+            'data' => [
+                'shared_count' => $count,
+                'total_profiles' => count(value: $profiles)
+            ]
+        ];
+
+    }
+
     /**
      * Get total profile count
      *

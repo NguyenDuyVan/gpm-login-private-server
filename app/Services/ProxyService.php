@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Proxy;
+use App\Models\ProxyShare;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Log;
 
 class ProxyService
 {
@@ -20,14 +22,13 @@ class ProxyService
      */
     public function getProxies(User $user, array $filters = [])
     {
-        $query = Proxy::with(['tags', 'creator']);
+        $query = Proxy::with(['tags', 'creator', 'updater']);
 
         // Apply search filter
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('host', 'like', "%{$search}%");
+                $q->where('raw_proxy', 'like', "%{$search}%");
             });
         }
 
@@ -39,14 +40,19 @@ class ProxyService
             });
         }
 
-        // Apply active status filter
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        // Apply status filter
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         // Apply user permissions
         if ($user->system_role !== 'ADMIN') {
-            $query->where('created_by', $user->id);
+            $proxyShareIds = ProxyShare::where('user_id', $user->id)->pluck('proxy_id');
+
+            $query->where(function ($q) use ($user, $proxyShareIds) {
+                $q->where('created_by', $user->id)
+                    ->orWhereIn('id', $proxyShareIds);
+            });
         }
 
         $perPage = $filters['per_page'] ?? 30;
@@ -59,7 +65,7 @@ class ProxyService
     public function getProxy($id, User $user)
     {
         try {
-            $proxy = Proxy::with(['tags', 'creator'])->find($id);
+            $proxy = Proxy::with(['tags', 'creator', 'updater'])->find($id);
 
             if (!$proxy) {
                 return [
@@ -95,26 +101,27 @@ class ProxyService
     /**
      * Create new proxy
      */
-    public function createProxy($name, $host, $port, $username = null, $password = null, $type = 'HTTP', $createdBy = null)
+    public function createProxy($rawProxy, $status = null, $createdBy = null, $updatedBy = null)
     {
         try {
             $proxy = Proxy::create([
-                'name' => $name,
-                'host' => $host,
-                'port' => $port,
-                'username' => $username,
-                'password' => $password,
-                'type' => $type,
-                'is_active' => true,
-                'created_by' => $createdBy
+                'raw_proxy' => $rawProxy,
+                'status' => $status ?? Proxy::STATUS_ACTIVE,
+                'created_by' => $createdBy,
+                'updated_by' => $updatedBy ?? $createdBy
             ]);
 
             return [
                 'success' => true,
-                'message' => 'proxy_created',
-                'data' => $proxy->load(['tags', 'creator'])
+                'message' => 'ok',
+                'data' => $proxy
             ];
         } catch (\Exception $e) {
+            Log::error('Failed to create proxy: ' . $e->getMessage(), [
+                'raw_proxy' => $rawProxy,
+                'created_by' => $createdBy,
+                'updated_by' => $updatedBy
+            ]);
             return [
                 'success' => false,
                 'message' => 'error_with_details',
@@ -124,9 +131,60 @@ class ProxyService
     }
 
     /**
+     * Bulk create proxies
+     */
+    public function bulkCreateProxy(array $proxiesData, $createdBy = null)
+    {
+        try {
+            $errorProxies = [];
+            $successCount = 0;
+
+            foreach ($proxiesData as $index => $proxyData) {
+                $result = $this->createProxy(
+                    $proxyData['raw_proxy'] ?? null,
+                    $proxyData['status'] ?? Proxy::STATUS_ACTIVE,
+                    $createdBy,
+                    $createdBy
+                );
+
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $errorProxies[] = [
+                        'index' => $index,
+                        'error' => $result['message'],
+                        'proxy_data' => $proxyData
+                    ];
+                }
+            }
+
+            $totalCount = count($proxiesData);
+            $errorCount = count($errorProxies);
+
+            return [
+                'success' => $successCount > 0,
+                'message' => $successCount === $totalCount ? 'all_proxies_created' :
+                    ($successCount > 0 ? 'partial_proxies_created' : 'no_proxies_created'),
+                'data' => [
+                    'created_count' => $successCount,
+                    'total_count' => $totalCount,
+                    'error_count' => $errorCount,
+                    'errors' => $errorProxies
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'bulk_create_failed',
+                'data' => ['details' => $e->getMessage()]
+            ];
+        }
+    }
+
+    /**
      * Update proxy
      */
-    public function updateProxy($id, $name, $host, $port, User $user, $username = null, $password = null, $type = null)
+    public function updateProxy($id, $rawProxy, $status, User $user)
     {
         try {
             $proxy = Proxy::find($id);
@@ -148,23 +206,17 @@ class ProxyService
             }
 
             $updateData = [
-                'name' => $name,
-                'host' => $host,
-                'port' => $port,
-                'username' => $username,
-                'password' => $password
+                'raw_proxy' => $rawProxy,
+                'status' => $status,
+                'updated_by' => $user->id
             ];
-
-            if ($type !== null) {
-                $updateData['type'] = $type;
-            }
 
             $proxy->update($updateData);
 
             return [
                 'success' => true,
                 'message' => 'proxy_updated',
-                'data' => $proxy->load(['tags', 'creator'])
+                'data' => $proxy->load(['tags', 'creator', 'updater'])
             ];
         } catch (\Exception $e) {
             return [
@@ -242,12 +294,16 @@ class ProxyService
                 ];
             }
 
-            $proxy->update(['is_active' => !$proxy->is_active]);
+            $newStatus = $proxy->status === Proxy::STATUS_ACTIVE ? Proxy::STATUS_INACTIVE : Proxy::STATUS_ACTIVE;
+            $proxy->update([
+                'status' => $newStatus,
+                'updated_by' => $user->id
+            ]);
 
             return [
                 'success' => true,
                 'message' => 'proxy_status_updated',
-                'data' => $proxy->load(['tags', 'creator'])
+                'data' => $proxy->load(['tags', 'creator', 'updater'])
             ];
         } catch (\Exception $e) {
             return [
@@ -286,11 +342,12 @@ class ProxyService
             $tagIds = collect($tags)->pluck('id')->toArray();
 
             $proxy->tags()->syncWithoutDetaching($tagIds);
+            $proxy->update(['updated_by' => $user->id]);
 
             return [
                 'success' => true,
                 'message' => 'ok',
-                'data' => $proxy->load(['tags', 'creator'])
+                'data' => $proxy->load(['tags', 'creator', 'updater'])
             ];
         } catch (\Exception $e) {
             return [
@@ -326,11 +383,12 @@ class ProxyService
             }
 
             $proxy->tags()->detach($tagIds);
+            $proxy->update(['updated_by' => $user->id]);
 
             return [
                 'success' => true,
                 'message' => 'ok',
-                'data' => $proxy->load(['tags', 'creator'])
+                'data' => $proxy->load(['tags', 'creator', 'updater'])
             ];
         } catch (\Exception $e) {
             return [
@@ -365,12 +423,17 @@ class ProxyService
                 ];
             }
 
-            // Build proxy URL
-            $proxyUrl = $proxy->type . '://';
-            if ($proxy->username && $proxy->password) {
-                $proxyUrl .= $proxy->username . ':' . $proxy->password . '@';
+            // Build proxy URL from raw_proxy
+            $proxyUrl = $proxy->connection_string;
+
+            // If no valid connection string, try raw proxy directly
+            if (empty($proxyUrl) || $proxyUrl === $proxy->raw_proxy) {
+                $proxyUrl = $proxy->raw_proxy;
+                // If it doesn't start with a protocol, assume HTTP
+                if (!preg_match('/^https?:\/\//', $proxyUrl) && !preg_match('/^socks[45]:\/\//', $proxyUrl)) {
+                    $proxyUrl = 'http://' . $proxyUrl;
+                }
             }
-            $proxyUrl .= $proxy->host . ':' . $proxy->port;
 
             // Test connection with a simple HTTP request
             $startTime = microtime(true);
@@ -417,6 +480,108 @@ class ProxyService
     }
 
     /**
+     * Get proxy shares
+     *
+     * @param int $proxyId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getProxyShares(int $proxyId)
+    {
+        return ProxyShare::where('proxy_id', $proxyId)
+            ->with(['proxy', 'user'])
+            ->get();
+    }
+
+    /**
+     * Share proxy with user
+     *
+     * @param int $proxyId
+     * @param int $userId
+     * @param string $role
+     * @param User $currentUser
+     * @return array
+     */
+    public function shareProxy(int $proxyId, int $userId, string $role, User $currentUser)
+    {
+        // Validate shared user
+        $sharedUser = User::find($userId);
+        if ($sharedUser == null) {
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
+        }
+
+        if ($sharedUser->isAdmin()) {
+            return ['success' => false, 'message' => 'no_need_set_admin_permission', 'data' => null];
+        }
+
+        // Validate proxy
+        $proxy = Proxy::find($proxyId);
+        if ($proxy == null) {
+            return ['success' => false, 'message' => 'proxy_not_found', 'data' => null];
+        }
+
+        // Check permission
+        if (!$currentUser->isAdmin() && $proxy->created_by != $currentUser->id) {
+            return ['success' => false, 'message' => 'owner_required', 'data' => null];
+        }
+
+        // Handle proxy share
+        $proxyShare = ProxyShare::where('proxy_id', $proxyId)
+            ->where('user_id', $userId)
+            ->first();
+
+        // If role is empty or invalid, remove the share
+        if (empty($role) || !in_array($role, [ProxyShare::ROLE_FULL, ProxyShare::ROLE_EDIT, ProxyShare::ROLE_VIEW])) {
+            if ($proxyShare != null) {
+                $proxyShare->delete();
+            }
+            return ['success' => true, 'message' => 'ok', 'data' => null];
+        }
+
+        // Create or update share
+        if ($proxyShare == null) {
+            $proxyShare = new ProxyShare();
+        }
+
+        $proxyShare->proxy_id = $proxyId;
+        $proxyShare->user_id = $userId;
+        $proxyShare->role = $role;
+        $proxyShare->save();
+
+        return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+    /**
+     * Bulk share proxies with user
+     *
+     * @param array $proxyIds
+     * @param int $userId
+     * @param string $role
+     * @param User $currentUser
+     * @return array
+     */
+    public function bulkShareProxy(array $proxyIds, int $userId, string $role, User $currentUser)
+    {
+        // Validate proxies
+
+        $count = 0;
+        foreach ($proxyIds as $id) {
+            $result = $this->shareProxy($id, $userId, $role, $currentUser);
+            if ($result['success']) {
+                $count++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'ok',
+            'data' => [
+                'shared_count' => $count,
+                'total_proxies' => count($proxyIds)
+            ]
+        ];
+    }
+
+    /**
      * Check if user can access proxy
      */
     private function canAccessProxy(User $user, Proxy $proxy)
@@ -426,8 +591,17 @@ class ProxyService
             return true;
         }
 
-        // User can only access proxies they created
-        return $proxy->created_by === $user->id;
+        // User can access proxies they created
+        if ($proxy->created_by === $user->id) {
+            return true;
+        }
+
+        // Check proxy shares
+        $proxyShare = ProxyShare::where('user_id', $user->id)
+            ->where('proxy_id', $proxy->id)
+            ->first();
+
+        return $proxyShare !== null;
     }
 
     /**
@@ -440,7 +614,17 @@ class ProxyService
             return true;
         }
 
-        // User can only manage proxies they created
-        return $proxy->created_by === $user->id;
+        // User can manage proxies they created
+        if ($proxy->created_by === $user->id) {
+            return true;
+        }
+
+        // Check proxy shares with FULL access
+        $proxyShare = ProxyShare::where('user_id', $user->id)
+            ->where('proxy_id', $proxy->id)
+            ->where('role', ProxyShare::ROLE_FULL)
+            ->first();
+
+        return $proxyShare !== null;
     }
 }

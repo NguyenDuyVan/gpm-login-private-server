@@ -25,6 +25,34 @@ class UserService
     }
 
     /**
+     * Get users with pagination and search
+     *
+     * @param array $filters
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getUsers(array $filters = [])
+    {
+        $query = User::select('email', 'system_role');
+
+        // Apply search filter
+        if (isset($filters['search']) && !empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('email', 'like', "%{$search}%")
+                    ->orWhere('display_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply active status filter
+        $query->where('is_active', true);
+
+        $query->orderBy('email');
+
+        $perPage = $filters['per_page'] ?? 30;
+        return $query->paginate($perPage);
+    }
+
+    /**
      * Create a new user
      *
      * @param string $email

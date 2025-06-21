@@ -8,7 +8,7 @@ use App\Services\GroupService;
 
 class GroupController extends BaseController
 {
-    protected $groupService;
+    protected GroupService $groupService;
 
     public function __construct(GroupService $groupService)
     {

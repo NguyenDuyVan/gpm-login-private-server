@@ -122,6 +122,20 @@ class ProfileController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
+    public function bulkShare(Request $request)
+    {
+        $user = $request->user();
+
+        $result = $this->profileService->bulkShareProfile(
+            $request->profile_ids,
+            $request->user_id,
+            $request->role,
+            $user
+        );
+
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
     public function getTotal()
     {
         $total = $this->profileService->getTotalProfiles();

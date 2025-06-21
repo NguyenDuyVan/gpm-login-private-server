@@ -19,7 +19,12 @@ class UserController extends BaseController
 
     public function index(Request $request)
     {
-        $users = $this->userService->getAllUsers();
+        $filters = [
+            'search' => $request->search ?? null,
+            'per_page' => $request->per_page ?? 10
+        ];
+
+        $users = $this->userService->getUsers($filters);
         return $this->getJsonResponse(true, 'success', $users);
     }
 
