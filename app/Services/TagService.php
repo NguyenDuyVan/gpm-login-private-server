@@ -26,12 +26,13 @@ class TagService
         // Default ordering
         $query->orderBy('name');
 
-        $perPage = $filters['per_page'];
-        $result = $query->paginate($perPage);
+        $perPage = $filters['per_page'] ?? 30;
+        $page = $filters['page'] ?? null;
+        $result = $query->paginate($perPage, ['*'], 'page', $page);
 
         // Return all results if no pagination
         return [
-            'success' => false,
+            'success' => true,
             'message' => 'ok',
             'data' => $result
         ];

@@ -26,7 +26,8 @@ class TagController extends BaseController
     {
         $filters = [
             'search' => $request->get('search'),
-            'per_page' => $request->get('per_page', 30)
+            'per_page' => $request->get('per_page', 30),
+            'page' => $request->get('page', 1)
         ];
 
         $result = $this->tagService->getAllTags($filters);

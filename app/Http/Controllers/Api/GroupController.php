@@ -17,12 +17,14 @@ class GroupController extends BaseController
 
     public function index(Request $request)
     {
-        $groups = $this->groupService->getAllGroups();
-        return response()->json([
-            'success' => true,
-            'message' => 'ok',
-            'data' => $groups
-        ]);
+        $filters = [
+            'search' => $request->search ?? null,
+            'per_page' => $request->per_page ?? 30,
+            'page' => $request->page ?? 1
+        ];
+
+        $groups = $this->groupService->getAllGroups($filters);
+        return $this->getJsonResponse(true, 'OK', $groups);
     }
 
     public function store(Request $request)
@@ -30,11 +32,7 @@ class GroupController extends BaseController
         $user = $request->user();
 
         if (!$this->groupService->hasAdminPermission($user)) {
-            return response()->json([
-                'success' => true,
-                'message' => 'admin_required',
-                'data' => null
-            ]);
+            return $this->getJsonResponse(false, 'admin_required', null);
         }
 
         $group = $this->groupService->createGroup(
@@ -43,11 +41,7 @@ class GroupController extends BaseController
             $user->id
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'group_created',
-            'data' => $group
-        ]);
+        return $this->getJsonResponse(true, 'group_created', $group);
     }
 
     public function update(Request $request, $id)
@@ -55,11 +49,7 @@ class GroupController extends BaseController
         $user = $request->user();
 
         if (!$this->groupService->hasAdminPermission($user)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'admin_required',
-                'data' => null
-            ]);
+            return $this->getJsonResponse(false, 'admin_required', null);
         }
 
         $group = $this->groupService->updateGroup(
@@ -70,18 +60,10 @@ class GroupController extends BaseController
         );
 
         if ($group == null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'group_not_found',
-                'data' => null
-            ]);
+            return $this->getJsonResponse(false, 'group_not_found', null);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'group_updated',
-            'data' => null
-        ]);
+        return $this->getJsonResponse(true, 'group_updated', null);
     }
 
     public function destroy($id, Request $request)
@@ -89,42 +71,26 @@ class GroupController extends BaseController
         $user = $request->user();
 
         if (!$this->groupService->hasAdminPermission($user)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'admin_required',
-                'data' => null
-            ]);
+            return $this->getJsonResponse(false, 'admin_required', null);
         }
 
         $result = $this->groupService->deleteGroup($id);
 
-        return response()->json([
-            'success' => $result['success'],
-            'message' => $result['message'],
-            'data' => null
-        ]);
+        return $this->getJsonResponse($result['success'], $result['message'], null);
     }
 
 
     public function getTotal()
     {
         $total = $this->groupService->getTotalGroups();
-        return response()->json([
-            'success' => true,
-            'message' => 'ok',
-            'data' => ['total' => $total]
-        ]);
+        return $this->getJsonResponse(true, 'OK', ['total' => $total]);
     }
 
 
     public function getGroupShares($id)
     {
         $groupShares = $this->groupService->getGroupShares($id);
-        return response()->json([
-            'success' => true,
-            'message' => 'ok',
-            'data' => $groupShares
-        ]);
+        return $this->getJsonResponse(true, 'OK', $groupShares);
     }
 
     public function share($id, Request $request)
@@ -138,10 +104,6 @@ class GroupController extends BaseController
             $user
         );
 
-        return response()->json([
-            'success' => $result['success'],
-            'message' => $result['message'],
-            'data' => null
-        ]);
+        return $this->getJsonResponse($result['success'], $result['message'], null);
     }
 }

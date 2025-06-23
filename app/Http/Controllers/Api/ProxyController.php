@@ -28,7 +28,8 @@ class ProxyController extends BaseController
             'search' => $request->search ?? null,
             'tags' => $request->tags ?? null,
             'status' => $request->status ?? null,
-            'per_page' => $request->per_page ?? 30
+            'per_page' => $request->per_page ?? 30,
+            'page' => $request->page ?? 1
         ];
 
         $proxies = $this->proxyService->getProxies($user, $filters);

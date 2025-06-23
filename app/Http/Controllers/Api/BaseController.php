@@ -13,7 +13,7 @@ class BaseController extends Controller
      *
      * @param  bool  $success
      * @param  string  $message
-     * @param  object  $data
+     * @param  mixed  $data
      *
      */
     protected function getJsonResponse($success, $message, $data)

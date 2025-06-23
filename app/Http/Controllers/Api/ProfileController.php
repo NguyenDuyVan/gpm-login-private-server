@@ -26,7 +26,8 @@ class ProfileController extends BaseController
             'share_mode' => $request->share_mode ?? null,
             'tags' => $request->tags ?? null,
             'sort' => $request->sort ?? null,
-            'per_page' => $request->per_page ?? 30
+            'per_page' => $request->per_page ?? 30,
+            'page' => $request->page ?? 1
         ];
 
         $extensiveFields = $request->extensive_fields ?? [];

@@ -65,7 +65,8 @@ class ProfileService
 
         // Pagination
         $perPage = $filters['per_page'] ?? 30;
-        return $query->paginate($perPage);
+        $page = $filters['page'] ?? null;
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
