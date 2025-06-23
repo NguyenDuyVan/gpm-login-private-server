@@ -23,7 +23,7 @@ services:
         #     - '${FORWARD_DB_PORT:-3306}:3306'
         restart: unless-stopped
         environment:
-            # MYSQL_ROOT_HOST: '%'
+            MYSQL_ROOT_HOST: '%'
             MYSQL_DATABASE: ${DB_DATABASE}
             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
             MYSQL_PASSWORD: ${DB_PASSWORD}

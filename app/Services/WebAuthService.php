@@ -18,6 +18,8 @@ class WebAuthService
      */
     public function login(string $email, string $password)
     {
+        $this->createDefaultAdmin();
+
         // Find active user by email
         $user = User::where('email', $email)
             ->where('is_active', true)
@@ -45,6 +47,27 @@ class WebAuthService
     function isHashed($password)
     {
         return Str::startsWith($password, '$2y$') && strlen($password) === 60;
+    }
+
+    public function createDefaultAdmin()
+    {
+        try {
+            if (User::count() > 0) {
+                return true;
+            }
+
+            User::create([
+                'display_name' => 'Admin',
+                'email' => 'Administrator',
+                'is_active' => true,
+                'system_role' => 'ADMIN',
+                'password' => Hash::make('Administrator')
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
