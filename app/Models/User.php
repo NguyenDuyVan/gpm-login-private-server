@@ -139,6 +139,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Proxy shares for this user
+     */
+    public function proxyShares()
+    {
+        return $this->hasMany(ProxyShare::class);
+    }
+
+    /**
+     * Proxies created by this user
+     */
+    public function createdProxies()
+    {
+        return $this->hasMany(Proxy::class, 'created_by');
+    }
+
+    /**
      * Groups this user has access to through shares
      */
     public function sharedGroups()
@@ -154,6 +170,16 @@ class User extends Authenticatable
     public function sharedProfiles()
     {
         return $this->belongsToMany(Profile::class, 'profile_shares')
+            ->withPivot(['role'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Proxies this user has access to through shares
+     */
+    public function sharedProxies()
+    {
+        return $this->belongsToMany(Proxy::class, 'proxy_shares')
             ->withPivot(['role'])
             ->withTimestamps();
     }

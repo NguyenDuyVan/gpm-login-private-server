@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Profile extends Model
 {
@@ -20,7 +19,8 @@ class Profile extends Model
         'storage_type',
         'storage_path',
         'meta_data',
-        'json_data',
+        'fingerprint_data',
+        'dynamic_data',
         'group_id',
         'created_by',
         'last_run_by',
@@ -38,7 +38,6 @@ class Profile extends Model
      * The attributes that should be cast.
      */
     protected $casts = [
-        'json_data' => 'array',
         'meta_data' => 'array',
         'last_run_at' => 'datetime',
         'last_used_at' => 'datetime',

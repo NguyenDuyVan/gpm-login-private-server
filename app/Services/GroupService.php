@@ -11,9 +11,24 @@ class GroupService
     /**
      * Get all groups (excluding trash group with id = 0)
      */
-    public function getAllGroups()
+    public function getAllGroups(array $filters = [])
     {
-        return Group::where('id', '!=', 0)->orderBy('sort_order')->paginate(1000);
+        $query = Group::where('id', '!=', 0);
+
+        // Apply search filter
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderBy('sort_order');
+
+        $perPage = $filters['per_page'] ?? 30;
+        $page = $filters['page'] ?? null;
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**

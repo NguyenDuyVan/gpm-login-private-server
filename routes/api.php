@@ -57,8 +57,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/create', [GroupController::class, 'store']);
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::get('/delete/{id}', [GroupController::class, 'destroy']);
-        Route::get('/share/{id}', [GroupController::class, 'share']);
-        Route::get('/roles/{id}', [GroupController::class, 'getGroupShares']);
+        Route::get('/share/{id}', action: [GroupController::class, 'share']);
+        // Route::get('/roles/{id}', [GroupController::class, 'getGroupShares']);
         Route::get('/shares/{id}', [GroupController::class, 'getGroupShares']);
     });
 
@@ -70,7 +70,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update/{id}', [ProfileController::class, 'update']);
         Route::get('/update-status/{id}', [ProfileController::class, 'updateStatus']);
         Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
-        Route::get('/share/{id}', [ProfileController::class, 'share']);
+        Route::post('/share/{id}', action: [ProfileController::class, 'share']);
+        Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
         Route::get('/roles/{id}', [ProfileController::class, 'getProfileShares']);
         Route::get('/shares/{id}', [ProfileController::class, 'getProfileShares']);
         Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
@@ -104,11 +105,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [ProxyController::class, 'index']);
         Route::get('/{id}', [ProxyController::class, 'show']);
         Route::post('/create', [ProxyController::class, 'store']);
+        Route::post('/bulk-create', [ProxyController::class, 'bulkStore']);
         Route::post('/update/{id}', [ProxyController::class, 'update']);
         Route::get('/delete/{id}', [ProxyController::class, 'destroy']);
         Route::post('/toggle-status/{id}', [ProxyController::class, 'toggleStatus']);
         Route::post('/add-tags/{id}', [ProxyController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
         Route::post('/test-connection/{id}', [ProxyController::class, 'testConnection']);
+        Route::post('/share/{id}', [ProxyController::class, 'share']);
+        Route::post('/bulk-share', [ProxyController::class, 'bulkShare']);
+        Route::get('/shares/{id}', [ProxyController::class, 'getProxyShares']);
     });
 });

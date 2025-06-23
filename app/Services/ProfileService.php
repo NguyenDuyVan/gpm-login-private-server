@@ -30,7 +30,7 @@ class ProfileService
      */
     public function getProfiles(User $user, array $filters = [], array $extensiveFields = [])
     {
-        $selectFields = ['id', 'name', 'storage_path', 'meta_data', 'group_id', 'created_by', 'status', 'last_run_at', 'last_run_by', 'created_at', 'updated_at'];
+        $selectFields = ['id', 'name', 'storage_path', 'meta_data', 'group_id', 'created_by', 'status', 'last_run_at', 'last_run_by', 'created_at', 'updated_at', 'fingerprint_data', 'dynamic_data',];
         // Add extensive fields if provided, avoid duplicates
         if (count($extensiveFields) > 0) {
             foreach ($extensiveFields as $field) {
@@ -65,7 +65,8 @@ class ProfileService
 
         // Pagination
         $perPage = $filters['per_page'] ?? 30;
-        return $query->paginate($perPage);
+        $page = $filters['page'] ?? null;
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
@@ -144,20 +145,22 @@ class ProfileService
      *
      * @param string $name
      * @param string $storagePath
-     * @param array $jsonData
+     * @param string| null $fingerprintData
+     * @param string|null $dynamicData
      * @param array|null $metaData
      * @param int $groupId
      * @param int $userId
      * @param string $storageType
      * @return Profile
      */
-    public function createProfile(string $name, string $storagePath, array $jsonData, ?array $metaData, int $groupId, int $userId, string $storageType = Profile::STORAGE_S3)
+    public function createProfile(string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, ?array $metaData, int $groupId, int $userId, string $storageType = Profile::STORAGE_S3)
     {
         $profile = new Profile();
         $profile->name = $name;
         $profile->storage_type = $storageType;
         $profile->storage_path = $storagePath;
-        $profile->json_data = $jsonData;
+        $profile->fingerprint_data = $fingerprintData ?? null;
+        $profile->dynamic_data = $dynamicData ?? null;
         $profile->meta_data = $metaData ?? [];
         $profile->group_id = $groupId;
         $profile->created_by = $userId;
@@ -210,7 +213,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function updateProfile(int $id, string $name, string $storagePath, array $jsonData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
+    public function updateProfile(int $id, string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
@@ -223,7 +226,8 @@ class ProfileService
 
         $profile->name = $name;
         $profile->storage_path = $storagePath;
-        $profile->json_data = $jsonData;
+        $profile->fingerprint_data = $fingerprintData;
+        $profile->dynamic_data = $dynamicData;
         $profile->meta_data = $metaData;
         $profile->group_id = $groupId;
         $profile->last_run_at = $lastRunAt;
@@ -382,6 +386,40 @@ class ProfileService
         $profileShare->save();
 
         return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+    public function bulkShareProfile(array $profileIds, int $userId, string $role, User $currentUser)
+    {
+        // Validate shared user
+        $sharedUser = User::find($userId);
+        if ($sharedUser == null) {
+            return ['success' => false, 'message' => 'user_not_found', 'data' => null];
+        }
+
+        if ($sharedUser->isAdmin()) {
+            return ['success' => false, 'message' => 'no_need_set_admin_permission', 'data' => null];
+        }
+
+        // Validate profile
+        $profiles = Profile::active()->whereIn('id', $profileIds)->get();
+
+        $count = 0;
+        foreach ($profiles as $profile) {
+            $result = $this->shareProfile($profile->id, $userId, $role, $currentUser);
+            if ($result['success']) {
+                $count++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'ok',
+            'data' => [
+                'shared_count' => $count,
+                'total_profiles' => count(value: $profiles)
+            ]
+        ];
+
     }
 
     /**

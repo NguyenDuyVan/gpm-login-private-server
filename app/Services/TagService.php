@@ -9,11 +9,33 @@ use Illuminate\Support\Facades\DB;
 class TagService
 {
     /**
-     * Get all tags
+     * Get all tags with pagination and search
      */
-    public function getAllTags()
+    public function getAllTags(array $filters = [])
     {
-        return Tag::orderBy('name')->get();
+        $query = Tag::query();
+
+        // Apply search filter
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        // Default ordering
+        $query->orderBy('name');
+
+        $perPage = $filters['per_page'] ?? 30;
+        $page = $filters['page'] ?? null;
+        $result = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Return all results if no pagination
+        return [
+            'success' => true,
+            'message' => 'ok',
+            'data' => $result
+        ];
     }
 
     /**

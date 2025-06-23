@@ -26,7 +26,8 @@ class ProfileController extends BaseController
             'share_mode' => $request->share_mode ?? null,
             'tags' => $request->tags ?? null,
             'sort' => $request->sort ?? null,
-            'per_page' => $request->per_page ?? 30
+            'per_page' => $request->per_page ?? 30,
+            'page' => $request->page ?? 1
         ];
 
         $extensiveFields = $request->extensive_fields ?? [];
@@ -45,8 +46,9 @@ class ProfileController extends BaseController
         $result = $this->profileService->createProfile(
             $request->name,
             $request->storage_path,
-            $request->json_data,
-            $request->cookie_data,
+            $request->fingerprint_data,
+            $request->dynamic_data,
+            $request->meta_data,
             $request->group_id,
             $user->id,
             $request->storage_type ?? 'S3'
@@ -70,7 +72,8 @@ class ProfileController extends BaseController
             $id,
             $request->name,
             $request->storage_path,
-            $request->json_data,
+            $request->fingerprint_data,
+            $request->dynamic_data,
             $request->meta_data,
             $request->group_id,
             null,
@@ -114,6 +117,20 @@ class ProfileController extends BaseController
 
         $result = $this->profileService->shareProfile(
             $id,
+            $request->user_id,
+            $request->role,
+            $user
+        );
+
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function bulkShare(Request $request)
+    {
+        $user = $request->user();
+
+        $result = $this->profileService->bulkShareProfile(
+            $request->profile_ids,
             $request->user_id,
             $request->role,
             $user
