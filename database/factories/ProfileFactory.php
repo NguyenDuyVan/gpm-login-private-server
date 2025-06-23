@@ -23,11 +23,8 @@ class ProfileFactory extends Factory
             'name' => fake()->words(3, true),
             'storage_type' => fake()->randomElement(['S3', 'GOOGLE_DRIVE', 'LOCAL']),
             'storage_path' => '/' . fake()->word() . '/' . fake()->word(),
-            'json_data' => [
-                'browser' => 'chrome',
-                'version' => fake()->randomElement(['118.0.0.0', '119.0.0.0', '120.0.0.0']),
-                'plugins' => fake()->randomElements(['flash', 'java', 'silverlight'], 2)
-            ],
+            'fingerprint_data' => null,
+            'dynamic_data' => null,
             'meta_data' => [
                 'cookies' => fake()->randomElements(['session=abc123', 'auth=xyz789'], 1)
             ],

@@ -45,8 +45,9 @@ class ProfileController extends BaseController
         $result = $this->profileService->createProfile(
             $request->name,
             $request->storage_path,
-            $request->json_data,
-            $request->cookie_data,
+            $request->fingerprint_data,
+            $request->dynamic_data,
+            $request->meta_data,
             $request->group_id,
             $user->id,
             $request->storage_type ?? 'S3'
@@ -70,7 +71,8 @@ class ProfileController extends BaseController
             $id,
             $request->name,
             $request->storage_path,
-            $request->json_data,
+            $request->fingerprint_data,
+            $request->dynamic_data,
             $request->meta_data,
             $request->group_id,
             null,
