@@ -6,7 +6,7 @@
 /vendor
 .env
 .env.backup
-.phpunit.*
+.phpunit.result.cache
 Homestead.json
 Homestead.yaml
 auth.json
@@ -15,3 +15,4 @@ yarn-error.log
 /.idea
 /.vscode
 *credentials.json
+phpunit.xml
