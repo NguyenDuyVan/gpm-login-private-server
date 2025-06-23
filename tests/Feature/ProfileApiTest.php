@@ -111,8 +111,9 @@ class ProfileApiTest extends TestCase
         $profileData = [
             'name' => $profileName,
             'storage_path' => '/test/path',
-            'json_data' => ['browser' => 'chrome'],
-            'cookie_data' => ['session' => 'test'],
+            'fingerprint_data' => 'browser',
+            'dynamic_data' => 'user_agent',
+            'meta_data' => ['session' => 'test'],
             'group_id' => 1,
             'storage_type' => 'S3'
         ];
@@ -130,7 +131,8 @@ class ProfileApiTest extends TestCase
                     'id',
                     'name',
                     'storage_path',
-                    'json_data',
+                    'fingerprint_data',
+                    'dynamic_data',
                     'meta_data',
                     'group_id',
                     'created_by'
@@ -177,7 +179,8 @@ class ProfileApiTest extends TestCase
         $updateData = [
             'name' => 'Updated Profile Name',
             'storage_path' => '/updated/path',
-            'json_data' => ['browser' => 'firefox'],
+            'fingerprint_data' => 'browser',
+            'dynamic_data' => 'user_agent',
             'meta_data' => ['updated' => true],
             'group_id' => $this->filterGroupId
         ];
@@ -367,7 +370,8 @@ class ProfileApiTest extends TestCase
         return Profile::create([
             'name' => $name ?? ('Test Profile ' . $this->faker->uuid),
             'storage_path' => '/test/path/' . $this->faker->uuid,
-            'json_data' => ['browser' => 'chrome'],
+            'fingerprint_data' => 'browser',
+            'dynamic_data' => 'user_agent',
             'meta_data' => ['test' => true],
             'group_id' => $groupId,
             'created_by' => $this->user->id,

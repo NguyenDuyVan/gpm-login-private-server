@@ -15,8 +15,8 @@ return new class extends Migration {
     {
         Schema::table('profiles', function (Blueprint $table) {
             // Add new columns
-            $table->text('fingerprint_data', )->nullable()->after('storage_path');
-            $table->text('dynamic_data', )->nullable()->after('fingerprint_data');
+            $table->text('fingerprint_data')->nullable()->after('storage_path');
+            $table->text('dynamic_data')->nullable()->after('fingerprint_data');
         });
 
         // Copy data from json_data to fingerprint_data (assuming json_data contains fingerprint info)

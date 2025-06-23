@@ -212,7 +212,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function updateProfile(int $id, string $name, string $storagePath, array $fingerprintData, array $dynamicData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
+    public function updateProfile(int $id, string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
