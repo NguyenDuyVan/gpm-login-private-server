@@ -101,16 +101,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('proxies')->group(function () {
         Route::get('/', [ProxyController::class, 'index']);
         Route::get('/{id}', [ProxyController::class, 'show']);
-        Route::post('/create', [ProxyController::class, 'store']);
         Route::post('/bulk-create', [ProxyController::class, 'bulkStore']);
         Route::post('/update/{id}', [ProxyController::class, 'update']);
         Route::get('/delete/{id}', [ProxyController::class, 'destroy']);
-        Route::post('/toggle-status/{id}', [ProxyController::class, 'toggleStatus']);
+        Route::post('/bulk-delete', [ProxyController::class, 'bulkDelete']);
         Route::post('/add-tags/{id}', [ProxyController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
-        Route::post('/test-connection/{id}', [ProxyController::class, 'testConnection']);
-        Route::post('/share/{id}', [ProxyController::class, 'share']);
+        Route::post('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
         Route::post('/bulk-share', [ProxyController::class, 'bulkShare']);
-        Route::get('/shares/{id}', [ProxyController::class, 'getProxyShares']);
+        Route::get('/get-share-users/{id}', [ProxyController::class, 'getProxyShareUsers']);
     });
 });

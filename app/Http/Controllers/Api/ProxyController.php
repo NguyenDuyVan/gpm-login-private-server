@@ -5,11 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
-use App\Models\Proxy;
 use App\Services\ProxyService;
 use App\Http\Requests\CreateProxyRequest;
-use App\Http\Requests\UpdateProxyRequest;
-use App\Http\Requests\BulkCreateProxyRequest;
 
 class ProxyController extends BaseController
 {
@@ -51,12 +48,12 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    public function bulkStore(BulkCreateProxyRequest $request)
+    public function bulkStore(Request $request)
     {
         $user = $request->user();
 
         $result = $this->proxyService->bulkCreateProxy(
-            $request->proxies ?? [],
+            $request->proxies ?? $request->all() ?? [],
             $user->id
         );
 
@@ -72,14 +69,14 @@ class ProxyController extends BaseController
     }
 
 
-    public function update(UpdateProxyRequest $request, $id)
+    public function update(Request $request, $id)
     {
         $user = $request->user();
 
         $result = $this->proxyService->updateProxy(
             $id,
-            $request->raw_proxy,
-            $request->status,
+            $request->raw_proxy ?? null,
+            $request->status ?? null,
             $user
         );
 
@@ -93,11 +90,10 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], null);
     }
 
-
-    public function toggleStatus($id, Request $request)
+    public function bulkDelete(Request $request)
     {
         $user = $request->user();
-        $result = $this->proxyService->toggleProxyStatus($id, $user);
+        $result = $this->proxyService->bulkDeleteProxy($request->proxy_ids ?? $request->all() ?? [], $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -111,15 +107,14 @@ class ProxyController extends BaseController
     public function removeTags($id, Request $request)
     {
         $user = $request->user();
-        $result = $this->proxyService->removeTagsFromProxy($id, $request->tags, $user);
+        $result = $this->proxyService->removeTagsFromProxy($id, $request->tag_ids ?? $request->all() ?? [], $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-
-    public function testConnection($id, Request $request)
+    public function removeAllTags($id, Request $request)
     {
         $user = $request->user();
-        $result = $this->proxyService->testProxyConnection($id, $user);
+        $result = $this->proxyService->removeAllTagsFromProxy($id, $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -137,9 +132,9 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
-    public function getProxyShares($id)
+    public function getProxyShareUsers($id)
     {
-        $proxyShares = $this->proxyService->getProxyShares($id);
+        $proxyShares = $this->proxyService->getProxyShareUsers($id, true);
         return $this->getJsonResponse(true, 'OK', $proxyShares);
     }
 

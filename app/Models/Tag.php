@@ -18,7 +18,10 @@ class Tag extends Model
         'name',
         'color',
         'description',
+        'category',
     ];
+
+    protected $hidden = ['pivot'];
 
     /**
      * Profiles with this tag

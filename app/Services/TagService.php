@@ -23,6 +23,10 @@ class TagService
             });
         }
 
+        if (!empty($filters['category'])) {
+            $query->where('category', $filters['category']);
+        }
+
         // Default ordering
         $query->orderBy('name');
 
@@ -223,12 +227,39 @@ class TagService
                 ['name' => trim($tagName)],
                 [
                     'color' => '#007bff',
-                    'created_by' => $createdBy
                 ]
             );
             $tags[] = $tag;
         }
 
         return $tags;
+    }
+
+    public function createOrUpdateTags(array $tags)
+    {
+        $result = [];
+
+        foreach ($tags as $tagData) {
+            $name = trim($tagData['name']);
+            $color = $tagData['color'] ?? '#007bff';
+            $category = $tagData['category'] ?? 'null';
+
+            $tag = Tag::where('name', $name)->where('category', $category)->first();
+
+            if ($tag) {
+                $tag->color = $color;
+                $tag->save();
+            } else {
+                $tag = Tag::create([
+                    'name' => $name,
+                    'color' => $color,
+                    'category' => $category,
+                ]);
+            }
+
+            $result[] = $tag;
+        }
+
+        return $result;
     }
 }

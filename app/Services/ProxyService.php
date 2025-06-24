@@ -22,7 +22,7 @@ class ProxyService
      */
     public function getProxies(User $user, array $filters = [])
     {
-        $query = Proxy::with(['tags', 'creator', 'updater']);
+        $query = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_at', 'updated_at');
 
         // Apply search filter
         if (!empty($filters['search'])) {
@@ -46,7 +46,7 @@ class ProxyService
         }
 
         // Apply user permissions
-        if ($user->system_role !== 'ADMIN') {
+        if (!$user->isAdmin()) {
             $proxyShareIds = ProxyShare::where('user_id', $user->id)->pluck('proxy_id');
 
             $query->where(function ($q) use ($user, $proxyShareIds) {
@@ -66,7 +66,7 @@ class ProxyService
     public function getProxy($id, User $user)
     {
         try {
-            $proxy = Proxy::with(['tags', 'creator', 'updater'])->find($id);
+            $proxy = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_at', 'updated_at', 'created_by', 'updated_by')->find($id);
 
             if (!$proxy) {
                 return [
@@ -77,7 +77,7 @@ class ProxyService
             }
 
             // Check if user has permission to view this proxy
-            if (!$this->canAccessProxy($user, $proxy)) {
+            if (!$this->canAccessProxy($user, $proxy, [ProxyShare::ROLE_FULL, ProxyShare::ROLE_EDIT, ProxyShare::ROLE_VIEW])) {
                 return [
                     'success' => false,
                     'message' => 'insufficient_permission_proxy',
@@ -118,11 +118,6 @@ class ProxyService
                 'data' => $proxy
             ];
         } catch (\Exception $e) {
-            Log::error('Failed to create proxy: ' . $e->getMessage(), [
-                'raw_proxy' => $rawProxy,
-                'created_by' => $createdBy,
-                'updated_by' => $updatedBy
-            ]);
             return [
                 'success' => false,
                 'message' => 'error_with_details',
@@ -142,7 +137,7 @@ class ProxyService
 
             foreach ($proxiesData as $index => $proxyData) {
                 $result = $this->createProxy(
-                    $proxyData['raw_proxy'] ?? null,
+                    $proxyData['raw_proxy'] ?? $proxyData,
                     $proxyData['status'] ?? Proxy::STATUS_ACTIVE,
                     $createdBy,
                     $createdBy
@@ -153,7 +148,6 @@ class ProxyService
                 } else {
                     $errorProxies[] = [
                         'index' => $index,
-                        'error' => $result['message'],
                         'proxy_data' => $proxyData
                     ];
                 }
@@ -198,7 +192,7 @@ class ProxyService
             }
 
             // Check if user has permission to update this proxy
-            if (!$this->canManageProxy($user, $proxy)) {
+            if (!$this->canAccessProxy($user, $proxy, [ProxyShare::ROLE_FULL, ProxyShare::ROLE_EDIT])) {
                 return [
                     'success' => false,
                     'message' => 'insufficient_permission_proxy_edit',
@@ -207,8 +201,8 @@ class ProxyService
             }
 
             $updateData = [
-                'raw_proxy' => $rawProxy,
-                'status' => $status,
+                'raw_proxy' => $rawProxy ?? $proxy->raw_proxy,
+                'status' => $status ?? Proxy::STATUS_ACTIVE,
                 'updated_by' => $user->id
             ];
 
@@ -217,7 +211,7 @@ class ProxyService
             return [
                 'success' => true,
                 'message' => 'proxy_updated',
-                'data' => $proxy->load(['tags', 'creator', 'updater'])
+                'data' => null
             ];
         } catch (\Exception $e) {
             return [
@@ -244,7 +238,7 @@ class ProxyService
             }
 
             // Check if user has permission to delete this proxy
-            if (!$this->canManageProxy($user, $proxy)) {
+            if (!$this->canAccessProxy($user, $proxy, [ProxyShare::ROLE_FULL])) {
                 return [
                     'success' => false,
                     'message' => 'insufficient_permission_proxy_delete',
@@ -271,40 +265,24 @@ class ProxyService
         }
     }
 
-    /**
-     * Toggle proxy status
-     */
-    public function toggleProxyStatus($id, User $user)
+    public function bulkDeleteProxy(array $proxyIds, User $user)
     {
         try {
-            $proxy = Proxy::find($id);
-            if (!$proxy) {
-                return [
-                    'success' => false,
-                    'message' => 'proxy_not_found',
-                    'data' => null
-                ];
+            $count = 0;
+            foreach ($proxyIds as $proxyId) {
+                $result = $this->deleteProxy($proxyId, $user);
+                if ($result['success']) {
+                    $count++;
+                }
             }
-
-            // Check if user has permission to manage this proxy
-            if (!$this->canManageProxy($user, $proxy)) {
-                return [
-                    'success' => false,
-                    'message' => 'insufficient_permission_proxy_status',
-                    'data' => null
-                ];
-            }
-
-            $newStatus = $proxy->status === Proxy::STATUS_ACTIVE ? Proxy::STATUS_INACTIVE : Proxy::STATUS_ACTIVE;
-            $proxy->update([
-                'status' => $newStatus,
-                'updated_by' => $user->id
-            ]);
 
             return [
                 'success' => true,
-                'message' => 'proxy_status_updated',
-                'data' => $proxy->load(['tags', 'creator', 'updater'])
+                'message' => 'ok',
+                'data' => [
+                    'deleted_count' => $count,
+                    'total_proxies' => count($proxyIds)
+                    ]
             ];
         } catch (\Exception $e) {
             return [
@@ -318,7 +296,7 @@ class ProxyService
     /**
      * Add tags to proxy
      */
-    public function addTagsToProxy($id, array $tagNames, User $user)
+    public function addTagsToProxy($id, array $tags, User $user)
     {
         try {
             $proxy = Proxy::find($id);
@@ -331,7 +309,7 @@ class ProxyService
             }
 
             // Check if user has permission to manage this proxy
-            if (!$this->canManageProxy($user, $proxy)) {
+            if (!$this->canAccessProxy($user, $proxy, [ProxyShare::ROLE_FULL, ProxyShare::ROLE_EDIT])) {
                 return [
                     'success' => false,
                     'message' => 'insufficient_permission_proxy_tags',
@@ -339,7 +317,7 @@ class ProxyService
                 ];
             }
 
-            $tags = $this->tagService->findOrCreateTags($tagNames, $user->id);
+            $tags = $this->tagService->createOrUpdateTags($tags, $user->id);
             $tagIds = collect($tags)->pluck('id')->toArray();
 
             $proxy->tags()->syncWithoutDetaching($tagIds);
@@ -348,7 +326,7 @@ class ProxyService
             return [
                 'success' => true,
                 'message' => 'ok',
-                'data' => $proxy->load(['tags', 'creator', 'updater'])
+                'data' => null
             ];
         } catch (\Exception $e) {
             return [
@@ -375,7 +353,7 @@ class ProxyService
             }
 
             // Check if user has permission to manage this proxy
-            if (!$this->canManageProxy($user, $proxy)) {
+            if (!$this->canAccessProxy($user, $proxy, [ProxyShare::ROLE_FULL, ProxyShare::ROLE_EDIT])) {
                 return [
                     'success' => false,
                     'message' => 'insufficient_permission_proxy_remove_tags',
@@ -389,7 +367,7 @@ class ProxyService
             return [
                 'success' => true,
                 'message' => 'ok',
-                'data' => $proxy->load(['tags', 'creator', 'updater'])
+                'data' => null
             ];
         } catch (\Exception $e) {
             return [
@@ -400,10 +378,7 @@ class ProxyService
         }
     }
 
-    /**
-     * Test proxy connection
-     */
-    public function testProxyConnection($id, User $user)
+    public function removeAllTagsFromProxy($id, User $user)
     {
         try {
             $proxy = Proxy::find($id);
@@ -415,62 +390,23 @@ class ProxyService
                 ];
             }
 
-            // Check if user has permission to test this proxy
-            if (!$this->canAccessProxy($user, $proxy)) {
+            // Check if user has permission to manage this proxy
+            if (!$this->canAccessProxy($user, $proxy, [ProxyShare::ROLE_FULL, ProxyShare::ROLE_EDIT])) {
                 return [
                     'success' => false,
-                    'message' => 'insufficient_permission_proxy_test',
+                    'message' => 'insufficient_permission_proxy_remove_tags',
                     'data' => null
                 ];
             }
 
-            // Build proxy URL from raw_proxy
-            $proxyUrl = $proxy->connection_string;
+            $proxy->tags()->detach();
+            $proxy->update(['updated_by' => $user->id]);
 
-            // If no valid connection string, try raw proxy directly
-            if (empty($proxyUrl) || $proxyUrl === $proxy->raw_proxy) {
-                $proxyUrl = $proxy->raw_proxy;
-                // If it doesn't start with a protocol, assume HTTP
-                if (!preg_match('/^https?:\/\//', $proxyUrl) && !preg_match('/^socks[45]:\/\//', $proxyUrl)) {
-                    $proxyUrl = 'http://' . $proxyUrl;
-                }
-            }
-
-            // Test connection with a simple HTTP request
-            $startTime = microtime(true);
-
-            try {
-                $response = Http::timeout(10)->withOptions([
-                    'proxy' => $proxyUrl,
-                    'verify' => false
-                ])->get('http://httpbin.org/ip');
-
-                $endTime = microtime(true);
-                $responseTime = round(($endTime - $startTime) * 1000, 2);
-
-                if ($response->successful()) {
-                    return [
-                        'success' => true,
-                        'message' => 'ok',
-                        'data' => [
-                            'response_time' => $responseTime . 'ms',
-                            'ip' => $response->json('origin') ?? 'Unknown'
-                        ]
-                    ];
-                } else {
-                    return [
-                        'success' => false,
-                        'message' => 'proxy_connection_failed',
-                        'data' => null
-                    ];
-                }
-            } catch (\Exception $httpException) {
-                return [
-                    'success' => false,
-                    'message' => 'proxy_connection_error',
-                    'data' => ['details' => $httpException->getMessage()]
-                ];
-            }
+            return [
+                'success' => true,
+                'message' => 'ok',
+                'data' => null
+            ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -486,11 +422,17 @@ class ProxyService
      * @param int $proxyId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getProxyShares(int $proxyId)
+    public function getProxyShareUsers(int $proxyId, $paginate = false)
     {
-        return ProxyShare::where('proxy_id', $proxyId)
-            ->with(['proxy', 'user'])
-            ->get();
+        $query = ProxyShare::join('users', 'proxy_shares.user_id', '=', 'users.id')
+        ->where('proxy_shares.proxy_id', $proxyId)
+        ->select('users.id', 'users.display_name', 'users.email', 'proxy_shares.role');
+
+        if ($paginate) {
+            return $query->paginate(20);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -521,7 +463,7 @@ class ProxyService
         }
 
         // Check permission
-        if (!$currentUser->isAdmin() && $proxy->created_by != $currentUser->id) {
+        if (!$this->canAccessProxy($currentUser, $proxy, [ProxyShare::ROLE_FULL])) {
             return ['success' => false, 'message' => 'owner_required', 'data' => null];
         }
 
@@ -583,35 +525,12 @@ class ProxyService
     }
 
     /**
-     * Check if user can access proxy
-     */
-    private function canAccessProxy(User $user, Proxy $proxy)
-    {
-        // Admin can access any proxy
-        if ($user->system_role === 'ADMIN') {
-            return true;
-        }
-
-        // User can access proxies they created
-        if ($proxy->created_by === $user->id) {
-            return true;
-        }
-
-        // Check proxy shares
-        $proxyShare = ProxyShare::where('user_id', $user->id)
-            ->where('proxy_id', $proxy->id)
-            ->first();
-
-        return $proxyShare !== null;
-    }
-
-    /**
      * Check if user can manage proxy
      */
-    private function canManageProxy(User $user, Proxy $proxy)
+    private function canAccessProxy(User $user, Proxy $proxy, array $allowRoles)
     {
         // Admin can manage any proxy
-        if ($user->system_role === 'ADMIN') {
+        if ($user->isAdmin()) {
             return true;
         }
 
@@ -623,9 +542,9 @@ class ProxyService
         // Check proxy shares with FULL access
         $proxyShare = ProxyShare::where('user_id', $user->id)
             ->where('proxy_id', $proxy->id)
-            ->where('role', ProxyShare::ROLE_FULL)
-            ->first();
+            ->whereIn('role', $allowRoles)
+            ->first();  
 
-        return $proxyShare !== null;
+        return $proxyShare !== null && in_array($proxyShare->role, $allowRoles);
     }
 }
