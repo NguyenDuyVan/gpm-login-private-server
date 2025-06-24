@@ -45,6 +45,7 @@ docker buildx inspect --bootstrap
 docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:latest --push .
 docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:php8_1_apache --push .
 docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:php_fpm --push -f ./docker/php-fpm/Dockerfile .
+docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:dev-test --push .
 ```
 
 ## Create file update

@@ -52,5 +52,6 @@ GET /api/settings/get-storage-type
 ## Uploads
 
 POST /api/file/upload - Params: file (FormData) - Params: file_name - Return data: [path, fileName]
+POST /api/file/upload-s3                        - Params: file_name - Return data: data.upload_url
 
 GET /api/file/delete - Params: fileName
