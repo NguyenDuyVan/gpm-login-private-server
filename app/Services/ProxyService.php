@@ -295,6 +295,7 @@ class ProxyService
 
     /**
      * Add tags to proxy
+     * @param array $tags array of {name, color, category} or tag ids ['1', '2', '3']
      */
     public function addTagsToProxy($id, array $tags, User $user)
     {
@@ -317,8 +318,13 @@ class ProxyService
                 ];
             }
 
-            $tags = $this->tagService->createOrUpdateTags($tags, $user->id);
-            $tagIds = collect($tags)->pluck('id')->toArray();
+            $isArrayOfIds = is_array($tags) && collect($tags)->every(fn($tag) => is_int($tag) || is_string($tag));
+            if ($isArrayOfIds) {
+                $tagIds = $tags;
+            } else {
+                $tags = $this->tagService->createOrUpdateTags($tags, $user->id);
+                $tagIds = collect($tags)->pluck('id')->toArray();
+            }
 
             $proxy->tags()->syncWithoutDetaching($tagIds);
             $proxy->update(['updated_by' => $user->id]);

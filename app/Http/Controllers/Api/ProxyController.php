@@ -100,7 +100,7 @@ class ProxyController extends BaseController
     public function addTags($id, Request $request)
     {
         $user = $request->user();
-        $result = $this->proxyService->addTagsToProxy($id, $request->tags, $user);
+        $result = $this->proxyService->addTagsToProxy($id, $request->tags ?? $request->all() ?? [], $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 

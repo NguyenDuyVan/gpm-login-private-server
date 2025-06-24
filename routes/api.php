@@ -107,7 +107,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/bulk-delete', [ProxyController::class, 'bulkDelete']);
         Route::post('/add-tags/{id}', [ProxyController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
-        Route::post('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
+        Route::get('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
         Route::post('/bulk-share', [ProxyController::class, 'bulkShare']);
         Route::get('/get-share-users/{id}', [ProxyController::class, 'getProxyShareUsers']);
     });
