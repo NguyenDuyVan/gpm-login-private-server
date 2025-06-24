@@ -47,6 +47,7 @@ class TagController extends BaseController
         $result = $this->tagService->createTag(
             $request->name,
             $request->color ?? '#007bff',
+            $request->category ?? null,
             $user->id
         );
 
@@ -80,6 +81,7 @@ class TagController extends BaseController
             $id,
             $request->name,
             $request->color,
+            $request->category ?? null,
             $user
         );
 

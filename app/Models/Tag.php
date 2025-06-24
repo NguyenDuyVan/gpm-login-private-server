@@ -23,6 +23,7 @@ class Tag extends Model
         'color',
         'description',
         'category',
+        'created_by',
     ];
 
     protected $hidden = ['pivot'];
@@ -44,6 +45,7 @@ class Tag extends Model
     public function profiles()
     {
         return $this->belongsToMany(Profile::class, 'profile_tags')
+            ->using(ProfileTag::class)
             ->withTimestamps();
     }
 
@@ -53,6 +55,7 @@ class Tag extends Model
     public function proxies()
     {
         return $this->belongsToMany(Proxy::class, 'proxy_tags')
+            ->using(ProxyTag::class)
             ->withTimestamps();
     }
 

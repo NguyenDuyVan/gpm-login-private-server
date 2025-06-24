@@ -53,11 +53,11 @@ class TagService
     /**
      * Create new tag
      */
-    public function createTag($name, $color = '#007bff', $createdBy = null)
+    public function createTag($name, $color = '#007bff', $category = null, $createdBy = null)
     {
         try {
             // Check if tag with same name already exists
-            $existingTag = Tag::where('name', $name)->first();
+            $existingTag = Tag::where('name', $name)->where('category', $category)->first();
             if ($existingTag) {
                 return [
                     'success' => false,
@@ -68,7 +68,8 @@ class TagService
 
             $tag = Tag::create([
                 'name' => $name,
-                'color' => $color,
+                'color' => $color ?? '#007bff',
+                'category' => $category,
                 'created_by' => $createdBy
             ]);
 
@@ -89,7 +90,7 @@ class TagService
     /**
      * Update tag
      */
-    public function updateTag($id, $name, $color, User $user)
+    public function updateTag($id, $name, $color, $category, User $user)
     {
         try {
             $tag = Tag::find($id);
@@ -122,7 +123,8 @@ class TagService
 
             $tag->update([
                 'name' => $name,
-                'color' => $color
+                'color' => $color ?? $tag->color,
+                'category' => $category ?? $tag->category
             ]);
 
             return [
@@ -164,8 +166,8 @@ class TagService
             }
 
             // Check if tag is being used by any profiles or proxies
-            $profileTagsCount = $tag->profileTags()->count();
-            $proxyTagsCount = $tag->proxyTags()->count();
+            $profileTagsCount = $tag->profiles()->count();
+            $proxyTagsCount = $tag->proxies()->count();
 
             if ($profileTagsCount > 0 || $proxyTagsCount > 0) {
                 return [
@@ -185,7 +187,7 @@ class TagService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'error_with_details',
+                'message' => 'error_with_details' . $e->getMessage(),
                 'data' => ['details' => $e->getMessage()]
             ];
         }
