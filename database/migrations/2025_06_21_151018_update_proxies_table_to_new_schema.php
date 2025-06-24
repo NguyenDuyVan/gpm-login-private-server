@@ -18,7 +18,7 @@ return new class extends Migration
             // Add the new columns
             $table->string('raw_proxy', 255)->nullable()->after('id');
             $table->string('status')->default('active')->after('raw_proxy');
-            $table->integer('updated_by')->nullable()->after('created_by');
+            $table->uuid('updated_by')->nullable()->after('created_by');
         });
 
         // Migrate existing data to new format

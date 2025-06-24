@@ -18,11 +18,12 @@ class GroupFactory extends Factory
      */
     public function definition()
     {
+        $user = User::where('email', 'Administrator')->first();
         return [
             'name' => fake()->words(2, true),
             'sort_order' => fake()->numberBetween(1, 100),
-            'created_by' => User::where('email', 'Administrator')->first()->id,
-            'updated_by' => User::where('email', 'Administrator')->first()->id,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
         ];
     }
 }

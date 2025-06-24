@@ -148,7 +148,8 @@ class ProxyService
                 } else {
                     $errorProxies[] = [
                         'index' => $index,
-                        'proxy_data' => $proxyData
+                        'proxy_data' => $proxyData,
+                        'error' => $result['data']['details']
                     ];
                 }
             }
@@ -428,7 +429,7 @@ class ProxyService
      * @param int $proxyId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getProxyShareUsers(int $proxyId, $paginate = false)
+    public function getProxyShareUsers(string $proxyId, $paginate = false)
     {
         $query = ProxyShare::join('users', 'proxy_shares.user_id', '=', 'users.id')
         ->where('proxy_shares.proxy_id', $proxyId)
@@ -450,7 +451,7 @@ class ProxyService
      * @param User $currentUser
      * @return array
      */
-    public function shareProxy(int $proxyId, int $userId, string $role, User $currentUser)
+    public function shareProxy(string $proxyId, string $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -508,7 +509,7 @@ class ProxyService
      * @param User $currentUser
      * @return array
      */
-    public function bulkShareProxy(array $proxyIds, int $userId, string $role, User $currentUser)
+    public function bulkShareProxy(array $proxyIds, string $userId, string $role, User $currentUser)
     {
         // Validate proxies
 

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -14,14 +15,14 @@ return new class extends Migration
     public function up()
     {
         Schema::create('profiles', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name');
             $table->string('s3_path');
             $table->json('json_data');
             $table->json('cookie_data');
-            $table->unsignedBigInteger('group_id');
-            $table->unsignedBigInteger('created_by');
-            $table->unsignedBigInteger('last_run_by')->nullable();
+            $table->uuid('group_id');
+            $table->uuid('created_by');
+            $table->uuid('last_run_by')->nullable();
             $table->dateTime('last_run_at')->nullable();
             $table->boolean('status')->default(1)->comment('1 - already, 2 - in use');
 

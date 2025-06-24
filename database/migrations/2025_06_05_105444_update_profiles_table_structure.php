@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -25,14 +26,16 @@ return new class extends Migration
             $table->longText('meta_data')->nullable()->after('storage_path');
 
             // Add usage tracking fields
-            $table->foreignId('using_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->uuid('using_by')->nullable();
+            $table->foreign('using_by')->references('id')->on('users')->onDelete('set null');
             $table->timestamp('last_used_at')->nullable();
             $table->integer('usage_count')->default(0);
 
             // Add soft delete fields
             $table->boolean('is_deleted')->default(false);
             $table->timestamp('deleted_at')->nullable();
-            $table->foreignId('deleted_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->uuid('deleted_by')->nullable();
+            $table->foreign('deleted_by')->references('id')->on('users')->onDelete('set null');
         });
 
         // Copy data from old columns to new columns

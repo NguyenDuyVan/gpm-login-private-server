@@ -16,13 +16,14 @@ class GroupService
     {
         $user = auth()->user();
 
-        $query = Group::where('id', '!=', 0);
+        $query = Group::query();
 
         if (!$user->isAdmin()) {
             $query->where('created_by', $user->id)
             ->orWhereHas('shares', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
+            ->orWhere('name', 'All')
             ->distinct();
         }
 
@@ -45,8 +46,11 @@ class GroupService
     public function getGroupById($id, $includeShareUsers = false)
     {
         $user = auth()->user();
-        if(!$this->canAccessGroup($id, $user, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
-            return null;
+        $group = Group::find($id);
+        if($group->name != 'All') {
+            if(!$this->canAccessGroup($id, $user, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
+                return null;
+            }
         }
 
         $group = Group::find($id);
@@ -62,10 +66,10 @@ class GroupService
      *
      * @param string $name
      * @param int $order
-     * @param int $userId
+     * @param string $userId
      * @return Group
      */
-    public function createGroup(string $name, int $order, int $userId)
+    public function createGroup(string $name, int $order, string $userId)
     {
         $group = new Group();
         $group->name = $name;
@@ -85,7 +89,7 @@ class GroupService
      * @param int $updatedBy
      * @return Group|null
      */
-    public function updateGroup(int $id, string $name, int $order, int $updatedBy)
+    public function updateGroup(string $id, string $name, int $order, string $updatedBy)
     {
         $user = auth()->user();
 
@@ -113,7 +117,7 @@ class GroupService
      * @param int $id
      * @return array
      */
-    public function deleteGroup(int $id)
+    public function deleteGroup(string $id)
     {
         $user = auth()->user();
 
@@ -152,7 +156,7 @@ class GroupService
      * @param int $groupId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getGroupShareUsers(int $groupId, $paginate = false)
+    public function getGroupShareUsers(string $groupId, $paginate = false)
     {
         $query = GroupShare::join('users', 'group_shares.user_id', '=', 'users.id')
         ->where('group_shares.group_id', $groupId)
@@ -174,7 +178,7 @@ class GroupService
      * @param User $currentUser
      * @return array
      */
-    public function shareGroup(int $groupId, int $userId, string $role, User $currentUser)
+    public function shareGroup(string $groupId, string $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -241,7 +245,7 @@ class GroupService
      * @param User $user
      * @return bool
      */
-    public function canAccessGroup(int $groupId, User $user, array $allowRoles)
+    public function canAccessGroup(string $groupId, User $user, array $allowRoles)
     {
         if ($user->isAdmin()) {
             return true;
@@ -272,7 +276,7 @@ class GroupService
      * @param User $user
      * @return bool
      */
-    public function canModifyGroup(int $groupId, User $user)
+    public function canModifyGroup(string $groupId, User $user)
     {
         if ($user->isAdmin()) {
             return true;
@@ -303,7 +307,7 @@ class GroupService
      * @param int $id
      * @return Group|null
      */
-    public function findGroup(int $id)
+    public function findGroup(string $id)
     {
         return Group::find($id);
     }

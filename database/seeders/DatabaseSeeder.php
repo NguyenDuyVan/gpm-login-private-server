@@ -35,5 +35,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         Group::factory(5)->create();
+
+        Group::factory()->create([
+            'name' => 'Test filter group',
+        ]);
     }
 }

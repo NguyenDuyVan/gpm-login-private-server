@@ -55,12 +55,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('groups')->group(function () {
         Route::get('/', [GroupController::class, 'index']);
-        Route::get('/{id}', [GroupController::class, 'show']);
         Route::get('/count', [GroupController::class, 'getTotal']);
         Route::post('/create', [GroupController::class, 'store']);
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::get('/delete/{id}', [GroupController::class, 'destroy']);
         Route::get('/share/{id}', action: [GroupController::class, 'share']);
+        Route::get('/{id}', [GroupController::class, 'show']);
         Route::get('/get-share-users/{id}', [GroupController::class, 'getGroupShareUsers']);
     });
 

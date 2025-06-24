@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -14,13 +15,16 @@ return new class extends Migration
     public function up()
     {
         Schema::create('proxy_tags', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('proxy_id')->constrained('proxies')->onDelete('cascade');
-            $table->foreignId('tag_id')->constrained('tags')->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->uuid('proxy_id');
+            $table->uuid('tag_id');
             $table->timestamps();
 
             // Ensure unique combination of proxy_id and tag_id
             $table->unique(['proxy_id', 'tag_id']);
+            
+            $table->foreign('proxy_id')->references('id')->on('proxies')->onDelete('cascade');
+            $table->foreign('tag_id')->references('id')->on('tags')->onDelete('cascade');
         });
     }
 

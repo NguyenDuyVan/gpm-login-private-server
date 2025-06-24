@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Profile extends Model
 {
     use HasFactory;
 
     protected $table = 'profiles';
+
+    public $incrementing = false; // Disable auto-increment
+    protected $keyType = 'string'; // ID is string (UUID)
 
     /**
      * The attributes that are mass assignable.
@@ -59,6 +63,17 @@ class Profile extends Model
      */
     const STATUS_READY = 1;
     const STATUS_IN_USE = 2;
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     /**
      * User who last ran this profile
@@ -124,15 +139,8 @@ class Profile extends Model
     public function tags()
     {
         return $this->belongsToMany(Tag::class, 'profile_tags')
+            ->using(ProfileTag::class)
             ->withTimestamps();
-    }
-
-    /**
-     * Legacy profile roles (for backward compatibility)
-     */
-    public function profileRoles()
-    {
-        return $this->hasMany(ProfileRole::class);
     }
 
     /**

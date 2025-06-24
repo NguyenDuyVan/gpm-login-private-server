@@ -19,7 +19,7 @@ class ProfileApiTest extends TestCase
     private $searchKeyword = 'Test Profile';
     private $searchAuthor = 'ABCĐE John Doe';
 
-    private $filterGroupId = 2;
+    private $filterGroupId = '';
     static $profileTestCreated = false;
 
     protected function setUp(): void
@@ -29,6 +29,8 @@ class ProfileApiTest extends TestCase
         $this->auth();
 
         $this->initProfiles();
+
+        $this->filterGroupId = Group::where('name', 'Test filter group')->first()->id;
     }
 
     protected function auth()
@@ -82,8 +84,11 @@ class ProfileApiTest extends TestCase
         $groupShareIds = GroupShare::where('user_id', $userId)->pluck('group_id');     // Danh sách group id được chia sẻ
 
         $selfCreatedProfileIds = Profile::where('created_by', $userId)->where('is_deleted', false)->pluck('id');             // Danh sách profile id tạo bởi user
-        $profileShareOverGroups = Profile::whereIn('group_id', $groupShareIds)->where('is_deleted', false)->pluck('id');      // Danh sách profile id chia sẻ qua group
-        $profileShareIds = ProfileShare::where('user_id', $userId)->pluck('profile_id'); // Danh sách profile id chia sẻ qua profile share
+        $profileShareOverGroups = Profile::whereIn('group_id', $groupShareIds)->where('is_deleted', false)->pluck('id');     // Danh sách profile id chia sẻ qua group
+        $profileShareIds = ProfileShare::where('user_id', $userId)
+            ->join('profiles', 'profile_shares.profile_id', '=', 'profiles.id')
+            ->where('profiles.is_deleted', false)
+            ->pluck('profile_id');                                     // Danh sách profile id chia sẻ qua profile share
 
         $allProfileIds = collect($selfCreatedProfileIds)
             ->merge($profileShareOverGroups)
@@ -114,7 +119,7 @@ class ProfileApiTest extends TestCase
             'fingerprint_data' => 'browser',
             'dynamic_data' => 'user_agent',
             'meta_data' => ['session' => 'test'],
-            'group_id' => 1,
+            'group_id' => Group::first()->id,
             'storage_type' => 'S3'
         ];
 
@@ -365,8 +370,12 @@ class ProfileApiTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 500]), 'Response status should be 200 or 500');
     }
 
-    private function createTestProfile($groupId = 1, $name = null)
+    private function createTestProfile($groupId = null, $name = null)
     {
+        // $groupId = $groupId ?? Group::first()?->id ?? 'huhu';
+        if($groupId == null) {
+            $groupId = Group::first()?->id;
+        }
         return Profile::create([
             'name' => $name ?? ('Test Profile ' . $this->faker->uuid),
             'storage_path' => '/test/path/' . $this->faker->uuid,

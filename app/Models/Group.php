@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Group extends Model
 {
     use HasFactory;
 
     protected $table = 'groups';
+
+    public $incrementing = false;  // Disable auto-increment
+    protected $keyType = 'string'; // ID is string (UUID)
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +31,17 @@ class Group extends Model
     protected $casts = [
         'sort_order' => 'integer',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     /**
      * Profiles in this group
@@ -68,13 +83,5 @@ class Group extends Model
         return $this->belongsToMany(User::class, 'group_shares')
             ->withPivot(['role'])
             ->withTimestamps();
-    }
-
-    /**
-     * Legacy group roles (for backward compatibility)
-     */
-    public function groupRoles()
-    {
-        return $this->hasMany(GroupRole::class);
     }
 }

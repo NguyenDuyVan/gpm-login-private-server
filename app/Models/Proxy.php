@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Proxy extends Model
 {
     use HasFactory;
 
     protected $table = 'proxies';
+
+    public $incrementing = false; // Disable auto-increment
+    protected $keyType = 'string'; // ID is string (UUID)
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +48,16 @@ class Proxy extends Model
     const STATUS_TESTING = 'testing';
     const STATUS_ERROR = 'error';
 
+    protected static function boot()
+    {
+        parent::boot();
 
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     /**
      * Tags associated with this proxy
@@ -52,6 +65,7 @@ class Proxy extends Model
     public function tags()
     {
         return $this->belongsToMany(Tag::class, 'proxy_tags')
+            ->using(ProxyTag::class)
             ->withTimestamps();
     }
 

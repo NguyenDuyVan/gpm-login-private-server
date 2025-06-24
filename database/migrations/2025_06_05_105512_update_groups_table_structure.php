@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -19,7 +20,8 @@ return new class extends Migration
             $table->integer('sort_order')->default(0)->after('name');
 
             // Add updated_by field
-            $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->uuid('updated_by')->nullable();
+            $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
 
             // Add timestamps if they don't exist
             if (!Schema::hasColumn('groups', 'updated_at')) {

@@ -50,10 +50,10 @@ class AdminService
     /**
      * Toggle user active status
      *
-     * @param int $userId
+     * @param string $userId
      * @return bool
      */
-    public function toggleUserActiveStatus(int $userId)
+    public function toggleUserActiveStatus(string $userId)
     {
         $user = User::find($userId);
         if ($user == null) {
@@ -70,10 +70,10 @@ class AdminService
     /**
      * Reset user password
      *
-     * @param int $userId
+     * @param string $userId
      * @return array
      */
-    public function resetUserPassword(int $userId)
+    public function resetUserPassword(string $userId)
     {
         $user = User::find($userId);
         if ($user == null) {

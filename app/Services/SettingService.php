@@ -119,14 +119,6 @@ class SettingService
             $version = self::$server_version;
             $response = [];
 
-            if ($version >= 11) {
-                $result = $this->ensureTrashGroupExists();
-                if (!$result['success']) {
-                    $version -= 1;
-                    $response['message'] = $result['message'];
-                }
-            }
-
             $response['version'] = $version;
             return ['success' => true, 'message' => 'ok', 'data' => $response];
         }
@@ -138,14 +130,6 @@ class SettingService
             $version = self::$server_version;
             $response = [];
 
-            if ($version >= 11) {
-                $result = $this->ensureTrashGroupExists();
-                if (!$result['success']) {
-                    $version -= 1;
-                    $response['message'] = $result['message'];
-                }
-            }
-
             $storage_type = Setting::where('name', 'storage_type')->first();
             $cache_extension = Setting::where('name', 'cache_extension')->first();
 
@@ -154,45 +138,5 @@ class SettingService
             $response['cache_extension'] = $cache_extension->value ?? 'off';
 
             return ['success' => true, 'message' => 'ok', 'data' => $response];
-        }
-
-        private function ensureTrashGroupExists()
-        {
-            $groupTrashId = 0;
-            $groupTrashName = 'Trash auto create (update private server version 11)';
-
-            if (!Group::where('id', $groupTrashId)->exists()) {
-                try {
-                    $userAdmin = User::where('system_role', User::ROLE_ADMIN)->first();
-                    if (!$userAdmin) {
-                        return ['success' => false, 'message' => 'No admin user found'];
-                    }
-
-                    $group = new Group();
-                    $group->name = $groupTrashName;
-                    $group->sort_order = 2147483647;
-                    $group->created_by = $userAdmin->id;
-                    $group->save();
-                } catch (\Exception $e) {
-                    return ['success' => false, 'message' => 'Can not create Trash group ' . $e->getMessage()];
-                }
-            }
-
-            $group = Group::where('name', $groupTrashName)->first();
-
-            if ($group == null) {
-                return ['success' => false, 'message' => 'Trash group not found'];
-            }
-
-            if ($group->id != $groupTrashId) {
-                try {
-                    $group->id = $groupTrashId;
-                    $group->save();
-                } catch (\Exception $e) {
-                    return ['success' => false, 'message' => 'Can not update id group Trash'];
-                }
-            }
-
-            return ['success' => true, 'message' => 'Trash group ensured'];
         }
     }

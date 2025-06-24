@@ -43,7 +43,7 @@ class ProfileService
         // Default, show all active profiles (not soft deleted)
         $query = Profile::active()
             ->select($selectFields)
-            ->with(['creator', 'lastRunUser', 'group']);
+            ->with(['creator:id,email,display_name', 'lastRunUser:id,email,display_name', 'group:id,name', 'tags:id,name,color,category']);
 
         // If user isn't admin, show by permissions
         if (!$user->isAdmin()) {
@@ -57,7 +57,7 @@ class ProfileService
                         ->orWhereIn('group_id', $groupShareIds)
                         ->orWhereIn('id', $profileShareIds);
                 })
-                ->with(['creator', 'lastRunUser', 'group']);
+                ->with(['creator:id,email,display_name', 'lastRunUser:id,email,display_name', 'group:id,name', 'tags:id,name,color,category']);
         }
 
         // Apply filters
@@ -81,8 +81,6 @@ class ProfileService
         // Filter by group
         if (isset($filters['group_id']) && $filters['group_id'] != Group::where('name', 'All')->first()?->id) {
             $query->where('group_id', $filters['group_id']);
-        } else {
-            $query->where('group_id', '!=', 0); // exclude trash
         }
 
         // Search
@@ -153,8 +151,11 @@ class ProfileService
      * @param string $storageType
      * @return Profile
      */
-    public function createProfile(string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, ?array $metaData, int $groupId, int $userId, string $storageType = Profile::STORAGE_S3)
+    public function createProfile(string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, ?array $metaData, ?string $groupId, string $userId, string $storageType = Profile::STORAGE_S3)
     {
+        if ($groupId == null) {
+            $groupId = Group::where('name', 'All')->first()->id;
+        }
         $profile = new Profile();
         $profile->name = $name;
         $profile->storage_type = $storageType;
@@ -185,7 +186,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function getProfile(int $id, User $user)
+    public function getProfile(string $id, User $user)
     {
         if (!$this->canAccessProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
@@ -213,7 +214,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function updateProfile(int $id, string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, array $metaData, int $groupId, ?string $lastRunAt, ?int $lastRunBy, User $user)
+    public function updateProfile(string $id, string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, array $metaData, string $groupId, ?string $lastRunAt, ?string $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
@@ -245,7 +246,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function updateProfileStatus(int $id, int $status, User $user)
+    public function updateProfileStatus(string $id, int $status, User $user)
     {
         if (!$this->canAccessProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_status', 'data' => null];
@@ -277,7 +278,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function deleteProfile(int $id, User $user)
+    public function deleteProfile(string $id, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
@@ -301,7 +302,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function restoreProfile(int $id, User $user)
+    public function restoreProfile(string $id, User $user)
     {
         if (!$user->isAdmin() && !$user->isModerator()) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_restore', 'data' => null];
@@ -323,7 +324,7 @@ class ProfileService
      * @param int $profileId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getProfileShares(int $profileId)
+    public function getProfileShares(string $profileId)
     {
         return ProfileShare::where('profile_id', $profileId)
             ->with(['profile', 'user'])
@@ -339,7 +340,7 @@ class ProfileService
      * @param User $currentUser
      * @return array
      */
-    public function shareProfile(int $profileId, int $userId, string $role, User $currentUser)
+    public function shareProfile(string $profileId, int $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -388,7 +389,7 @@ class ProfileService
         return ['success' => true, 'message' => 'ok', 'data' => null];
     }
 
-    public function bulkShareProfile(array $profileIds, int $userId, string $role, User $currentUser)
+    public function bulkShareProfile(array $profileIds, string $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -439,7 +440,7 @@ class ProfileService
      * @param User $logonUser
      * @return bool
      */
-    public function canModifyProfile(int $profileId, User $logonUser)
+    public function canModifyProfile(string $profileId, User $logonUser)
     {
         if ($logonUser->isAdmin()) {
             return true; // Admin can modify all
@@ -486,7 +487,7 @@ class ProfileService
      * @param User $logonUser
      * @return bool
      */
-    public function canAccessProfile(int $profileId, User $logonUser)
+    public function canAccessProfile(string $profileId, User $logonUser)
     {
         if ($logonUser->isAdmin()) {
             return true; // Admin can access all
@@ -531,7 +532,7 @@ class ProfileService
      * @param int $profileId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getProfileRoles(int $profileId)
+    public function getProfileRoles(string $profileId)
     {
         return $this->getProfileShares($profileId);
     }
@@ -543,7 +544,7 @@ class ProfileService
      * @param int $userId
      * @return array
      */
-    public function startUsingProfile(int $profileId, int $userId)
+    public function startUsingProfile(string $profileId, string $userId)
     {
         $user = User::find($userId);
         if (!$user) {
@@ -578,7 +579,7 @@ class ProfileService
      * @param int $userId
      * @return array
      */
-    public function stopUsingProfile(int $profileId, int $userId)
+    public function stopUsingProfile(string $profileId, string $userId)
     {
         $user = User::find($userId);
         if (!$user) {
@@ -613,7 +614,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function addTagsToProfile(int $profileId, array $tagNames, User $user)
+    public function addTagsToProfile(string $profileId, array $tagNames, User $user)
     {
         try {
             if (!$this->canModifyProfile($profileId, $user)) {
@@ -658,7 +659,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function removeTagsFromProfile(int $profileId, array $tagIds, User $user)
+    public function removeTagsFromProfile(string $profileId, array $tagIds, User $user)
     {
         try {
             if (!$this->canModifyProfile($profileId, $user)) {

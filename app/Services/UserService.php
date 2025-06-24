@@ -91,7 +91,7 @@ class UserService
      * @param bool|null $isActive
      * @return array
      */
-    public function updateUser(int $userId, string $displayName, ?string $systemRole = null, ?string $newPassword = null, ?bool $isActive = null)
+    public function updateUser(string $userId, string $displayName, ?string $systemRole = null, ?string $newPassword = null, ?bool $isActive = null)
     {
         $user = User::find($userId);
 
@@ -124,7 +124,7 @@ class UserService
      * @param int $userId
      * @return User|null
      */
-    public function getUserById(int $userId)
+    public function getUserById(string $userId)
     {
         return User::find($userId);
     }
