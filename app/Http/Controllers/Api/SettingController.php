@@ -8,7 +8,6 @@ use App\Services\S3PresignedUrlService;
 
 class SettingController extends BaseController
 {
-    public static $server_version = 13;
     protected $settingService;
     protected $s3PresignedUrlService;
 

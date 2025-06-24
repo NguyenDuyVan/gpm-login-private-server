@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
-use App\Models\User;
 use App\Services\AuthService;
 
 class AuthController extends BaseController
@@ -23,6 +22,13 @@ class AuthController extends BaseController
             $request->password
         );
 
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+        $result = $this->authService->logout($user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 }

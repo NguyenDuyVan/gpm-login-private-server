@@ -43,7 +43,7 @@
 <body>
     <div class="container">
         <h3 style="color: #0080C0">Admin site
-            <small>(v{{ \App\Http\Controllers\Api\SettingController::$server_version }})</small>
+            <small>(v{{ \App\Services\SettingService::$server_version }})</small>
         </h3>
         @if (Session::has('msg'))
         <div class="alert alert-success">

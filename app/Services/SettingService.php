@@ -8,7 +8,7 @@ use App\Models\User;
 
 class SettingService
 {
-    public static $server_version = 12;
+    public static $server_version = 13;
 
     public function initializeDefaultSettings()
     {
@@ -163,18 +163,18 @@ class SettingService
 
             if (!Group::where('id', $groupTrashId)->exists()) {
                 try {
-                    $userAdmin = User::where('role', 2)->first();
+                    $userAdmin = User::where('system_role', User::ROLE_ADMIN)->first();
                     if (!$userAdmin) {
                         return ['success' => false, 'message' => 'No admin user found'];
                     }
 
                     $group = new Group();
                     $group->name = $groupTrashName;
-                    $group->sort = 2147483647;
+                    $group->sort_order = 2147483647;
                     $group->created_by = $userAdmin->id;
                     $group->save();
                 } catch (\Exception $e) {
-                    return ['success' => false, 'message' => 'Can not create Trash group'];
+                    return ['success' => false, 'message' => 'Can not create Trash group ' . $e->getMessage()];
                 }
             }
 

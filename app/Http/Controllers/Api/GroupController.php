@@ -31,10 +31,6 @@ class GroupController extends BaseController
     {
         $user = $request->user();
 
-        if (!$this->groupService->hasAdminPermission($user)) {
-            return $this->getJsonResponse(false, 'admin_required', null);
-        }
-
         $group = $this->groupService->createGroup(
             $request->name,
             $request->order,
@@ -44,13 +40,16 @@ class GroupController extends BaseController
         return $this->getJsonResponse(true, 'group_created', $group);
     }
 
+    public function show($id, Request $request)
+    {
+        $includeShareUsers = $request->include_share_users ?? false;
+        $group = $this->groupService->getGroupById($id, $includeShareUsers);
+        return $this->getJsonResponse(true, 'OK', $group);
+    }
+
     public function update(Request $request, $id)
     {
         $user = $request->user();
-
-        if (!$this->groupService->hasAdminPermission($user)) {
-            return $this->getJsonResponse(false, 'admin_required', null);
-        }
 
         $group = $this->groupService->updateGroup(
             $id,
@@ -60,7 +59,7 @@ class GroupController extends BaseController
         );
 
         if ($group == null) {
-            return $this->getJsonResponse(false, 'group_not_found', null);
+            return $this->getJsonResponse(false, 'can_not_update_group', null);
         }
 
         return $this->getJsonResponse(true, 'group_updated', null);
@@ -69,10 +68,6 @@ class GroupController extends BaseController
     public function destroy($id, Request $request)
     {
         $user = $request->user();
-
-        if (!$this->groupService->hasAdminPermission($user)) {
-            return $this->getJsonResponse(false, 'admin_required', null);
-        }
 
         $result = $this->groupService->deleteGroup($id);
 
@@ -87,9 +82,9 @@ class GroupController extends BaseController
     }
 
 
-    public function getGroupShares($id)
+    public function getGroupShareUsers($id)
     {
-        $groupShares = $this->groupService->getGroupShares($id);
+        $groupShares = $this->groupService->getGroupShareUsers($id, true);
         return $this->getJsonResponse(true, 'OK', $groupShares);
     }
 

@@ -32,6 +32,8 @@ Route::get('/time', [HomeController::class, 'getSystemTime']);
 Route::prefix('users')->group(function () {
     Route::get('/login', [AuthController::class, 'login']);
     Route::post('/register', [UserController::class, 'store']);
+    Route::middleware(['auth:sanctum'])->get('/logout', [AuthController::class, 'logout']);
+    // Route::get('/logout', [AuthController::class, 'logout']);
 });
 
 Route::prefix('settings')->group(function () {
@@ -53,13 +55,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('groups')->group(function () {
         Route::get('/', [GroupController::class, 'index']);
+        Route::get('/{id}', [GroupController::class, 'show']);
         Route::get('/count', [GroupController::class, 'getTotal']);
         Route::post('/create', [GroupController::class, 'store']);
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::get('/delete/{id}', [GroupController::class, 'destroy']);
         Route::get('/share/{id}', action: [GroupController::class, 'share']);
-        // Route::get('/roles/{id}', [GroupController::class, 'getGroupShares']);
-        Route::get('/shares/{id}', [GroupController::class, 'getGroupShares']);
+        Route::get('/get-share-users/{id}', [GroupController::class, 'getGroupShareUsers']);
     });
 
     Route::prefix('profiles')->group(function () {
@@ -68,7 +70,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [ProfileController::class, 'show']);
         Route::post('/create', [ProfileController::class, 'store']);
         Route::post('/update/{id}', [ProfileController::class, 'update']);
-        Route::get('/update-status/{id}', [ProfileController::class, 'updateStatus']);
         Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::post('/share/{id}', action: [ProfileController::class, 'share']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
@@ -76,6 +77,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/shares/{id}', [ProfileController::class, 'getProfileShares']);
         Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
         Route::post('/stop-using/{id}', [ProfileController::class, 'stopUsing']);
+        Route::post('/update-status/{id}', [ProfileController::class, 'updateStatus']);
         Route::post('/add-tags/{id}', [ProfileController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProfileController::class, 'removeTags']);
         Route::post('/restore/{id}', [ProfileController::class, 'restore']);
@@ -86,11 +88,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('delete', [UploadController::class, 'delete']);
         Route::post('upload-s3', [UploadController::class, 'uploadS3']);
     });
-
-
-    Route::post('file/upload', [UploadController::class, 'store']);
-    Route::get('file/delete', [UploadController::class, 'delete']);
-    Route::get('file/upload-s3', [UploadController::class, 'uploadS3']);
 
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagController::class, 'index']);

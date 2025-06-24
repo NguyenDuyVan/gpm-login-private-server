@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Group;
 use App\Models\GroupShare;
 use App\Models\User;
+use phpDocumentor\Reflection\Types\Null_;
 
 class GroupService
 {
@@ -13,7 +14,17 @@ class GroupService
      */
     public function getAllGroups(array $filters = [])
     {
+        $user = auth()->user();
+
         $query = Group::where('id', '!=', 0);
+
+        if (!$user->isAdmin()) {
+            $query->where('created_by', $user->id)
+            ->orWhereHas('shares', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->distinct();
+        }
 
         // Apply search filter
         if (!empty($filters['search'])) {
@@ -29,6 +40,21 @@ class GroupService
         $page = $filters['page'] ?? null;
 
         return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    public function getGroupById($id, $includeShareUsers = false)
+    {
+        $user = auth()->user();
+        if(!$this->canAccessGroup($id, $user, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
+            return null;
+        }
+
+        $group = Group::find($id);
+
+        if ($includeShareUsers) {
+            $group->share_users = $this->getGroupShareUsers($id);
+        }
+        return $group;
     }
 
     /**
@@ -61,7 +87,13 @@ class GroupService
      */
     public function updateGroup(int $id, string $name, int $order, int $updatedBy)
     {
+        $user = auth()->user();
+
         $group = Group::find($id);
+
+        if(!$this->canAccessGroup($id, $user, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT])) {
+            return null;
+        }
 
         if ($group == null) {
             return null;
@@ -83,10 +115,16 @@ class GroupService
      */
     public function deleteGroup(int $id)
     {
+        $user = auth()->user();
+
         $group = Group::find($id);
 
         if ($group == null) {
             return ['success' => false, 'message' => 'group_not_found'];
+        }
+
+        if(!$this->canAccessGroup($id, $user, [GroupShare::ROLE_FULL])) {
+            return ['success' => false, 'message' => 'not_have_permission'];
         }
 
         if ($group->profiles->count() > 0) {
@@ -114,11 +152,17 @@ class GroupService
      * @param int $groupId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getGroupShares(int $groupId)
+    public function getGroupShareUsers(int $groupId, $paginate = false)
     {
-        return GroupShare::where('group_id', $groupId)
-            ->with(['group', 'user'])
-            ->get();
+        $query = GroupShare::join('users', 'group_shares.user_id', '=', 'users.id')
+        ->where('group_shares.group_id', $groupId)
+        ->select('users.id', 'users.display_name', 'users.email', 'group_shares.role');
+
+        if ($paginate) {
+            return $query->paginate(20);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -149,8 +193,8 @@ class GroupService
         }
 
         // Check permission
-        if (!$currentUser->isAdmin() && $group->created_by != $currentUser->id) {
-            return ['success' => false, 'message' => 'owner_required'];
+        if (!$this->canAccessGroup($groupId, $currentUser, [GroupShare::ROLE_FULL])) {
+            return ['success' => false, 'message' => 'not_have_permission'];
         }
 
         // Handle group share
@@ -197,7 +241,7 @@ class GroupService
      * @param User $user
      * @return bool
      */
-    public function canAccessGroup(int $groupId, User $user)
+    public function canAccessGroup(int $groupId, User $user, array $allowRoles)
     {
         if ($user->isAdmin()) {
             return true;
@@ -218,7 +262,7 @@ class GroupService
             ->where('user_id', $user->id)
             ->first();
 
-        return $groupShare !== null;
+        return $groupShare !== null && in_array($groupShare->role, $allowRoles);
     }
 
     /**
