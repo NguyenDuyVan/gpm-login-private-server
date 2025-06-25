@@ -237,7 +237,7 @@ class Profile extends Model
     /**
      * Scope to get only deleted profiles
      */
-    public function scopeDeleted($query)
+    public function scopeIntrashed($query)
     {
         return $query->where('is_deleted', true);
     }

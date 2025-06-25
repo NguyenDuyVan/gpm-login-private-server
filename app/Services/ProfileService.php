@@ -316,7 +316,7 @@ class ProfileService
             return ['success' => false, 'message' => 'insufficient_permission_profile_restore', 'data' => null];
         }
 
-        $profile = Profile::deleted()->find($id);
+        $profile = Profile::intrashed()->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'profile_not_found_in_trash', 'data' => null];
         }
