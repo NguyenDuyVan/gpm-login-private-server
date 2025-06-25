@@ -22,7 +22,9 @@ class ProxyService
      */
     public function getProxies(User $user, array $filters = [], string $sort = 'created_desc')
     {
-        $query = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at');
+        $query = Proxy::with(['tags' => function ($q) {
+                    $q->select('tags.id', 'name', 'color', 'category')->orderBy('proxy_tags.created_at');
+                }])->select('id', 'raw_proxy', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at');
 
         // Apply search filter
         if (!empty($filters['search'])) {

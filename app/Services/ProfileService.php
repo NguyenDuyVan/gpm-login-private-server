@@ -58,8 +58,8 @@ class ProfileService
                 'group:id,name',
                 // 'tags:id,name,color,category',
                 'tags' => function ($q) {
-                    $q->select('tags.id', 'name', 'color', 'category') // chỉ định các field cần lấy
-                    ->orderBy('profile_tags.created_at'); // sắp xếp theo created_at trong bảng trung gian
+                    $q->select('tags.id', 'name', 'color', 'category')
+                    ->orderBy('profile_tags.created_at');
                 }
         ]);
         // TODO: sắp xếp tags theo created_at
