@@ -9,17 +9,20 @@ use App\Models\ProfileShare;
 use App\Models\User;
 use App\Models\Tag;
 use App\Services\TagService;
+use App\Services\UploadService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ProfileService
 {
-    protected $tagService;
+    protected TagService $tagService;
+    protected UploadService $uploadService;
 
-    public function __construct(TagService $tagService)
+    public function __construct(TagService $tagService, UploadService $uploadService)
     {
         $this->tagService = $tagService;
+        $this->uploadService = $uploadService;
     }
 
     /**
@@ -42,9 +45,24 @@ class ProfileService
         }
 
         // Default, show all active profiles (not soft deleted)
-        $query = Profile::active()
+        if(isset($filters['is_deleted']) && $filters['is_deleted'] == 1)
+            $query = Profile::intrashed();
+        else
+            $query = Profile::active();
+
+        $query = $query
             ->select($selectFields)
-            ->with(['creator:id,email,display_name', 'lastRunUser:id,email,display_name', 'group:id,name', 'tags:id,name,color,category']);
+            ->with([
+                'creator:id,email,display_name',
+                'lastRunUser:id,email,display_name',
+                'group:id,name',
+                // 'tags:id,name,color,category',
+                'tags' => function ($q) {
+                    $q->select('tags.id', 'name', 'color', 'category') // chỉ định các field cần lấy
+                    ->orderBy('profile_tags.created_at'); // sắp xếp theo created_at trong bảng trung gian
+                }
+        ]);
+        // TODO: sắp xếp tags theo created_at
 
         // If user isn't admin, show by permissions
         if (!$user->isAdmin()) {
@@ -304,6 +322,7 @@ class ProfileService
         }
 
         if($delete_mode == 'hard') {
+            $this->uploadService->deleteFile($profile->storage_path);
             $profile->delete();
         } else {
             $profile->softDelete($user);
@@ -593,16 +612,27 @@ class ProfileService
     public function bulkEditProperty(array $profileIds, string $fieldName, ?string $newValue)
     {
         $count = 0;
-        foreach ($profileIds as $profileId) {
-            $result = $this->editProperty($profileId, $fieldName, $newValue);
-            if ($result['success']) {
-                $count++;
+        $lastError = null;
+        if($newValue != null) {
+            $array = preg_split('/\r\n|\r|\n/', $newValue);
+            $countArray = count($array);
+            $index = 0;
+            foreach ($profileIds as $profileId) {
+                $value = $array[$index % $countArray] ?? null;
+                $result = $this->editProperty($profileId, $fieldName, $value);
+                if ($result['success']) {
+                    $count++;
+                } else {
+                    $lastError = $result['message'];
+                }
+                $index++;
             }
         }
 
         return ['success' => true, 'message' => 'ok', 'data' => [
             'updated_count' => $count,
-            'total_profiles' => count(value: $profileIds)
+            'total_profiles' => count(value: $profileIds),
+            'last_error' => $lastError
         ]];
     }
 
