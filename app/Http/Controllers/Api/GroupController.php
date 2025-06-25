@@ -101,4 +101,11 @@ class GroupController extends BaseController
 
         return $this->getJsonResponse($result['success'], $result['message'], null);
     }
+
+    public function removeShare($id, Request $request)
+    {
+        $result = $this->groupService->removeShareGroup($id, $request->user_id);
+
+        return $this->getJsonResponse($result['success'], $result['message'], null);
+    }
 }

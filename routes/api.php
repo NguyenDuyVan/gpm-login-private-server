@@ -60,6 +60,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::get('/delete/{id}', [GroupController::class, 'destroy']);
         Route::get('/share/{id}', action: [GroupController::class, 'share']);
+        Route::get('/remove-share/{id}', action: [GroupController::class, 'removeShare']);
         Route::get('/{id}', [GroupController::class, 'show']);
         Route::get('/get-share-users/{id}', [GroupController::class, 'getGroupShareUsers']);
     });
@@ -109,6 +110,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
         Route::get('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
         Route::post('/bulk-share', [ProxyController::class, 'bulkShare']);
+        Route::post('/bulk-remove-share', [ProxyController::class, 'bulkRemoveShare']);
         Route::get('/get-share-users/{id}', [ProxyController::class, 'getProxyShareUsers']);
     });
 });

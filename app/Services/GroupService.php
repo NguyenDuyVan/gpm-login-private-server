@@ -227,6 +227,28 @@ class GroupService
         return ['success' => true, 'message' => 'ok'];
     }
 
+    public function removeShareGroup(string $groupId, string $userId)
+    {
+        $currentUser = auth()->user();
+
+        $groupShare = GroupShare::where('group_id', $groupId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($groupShare == null) {
+            return ['success' => false, 'message' => 'share_not_found'];
+        }
+
+        // Check permission
+        if (!$this->canAccessGroup($groupId, $currentUser, [GroupShare::ROLE_FULL])) {
+            return ['success' => false, 'message' => 'not_have_permission'];
+        }
+
+        $groupShare->delete();
+
+        return ['success' => true, 'message' => 'ok'];
+    }
+
     /**
      * Check if user has admin permission
      *

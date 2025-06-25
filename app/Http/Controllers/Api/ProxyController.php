@@ -132,6 +132,19 @@ class ProxyController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
+    public function bulkRemoveShare(Request $request)
+    {
+        $user = $request->user();
+
+        $result = $this->proxyService->bulkRemoveShareProxy(
+            $request->proxy_ids,
+            $request->user_id,
+            $request->role
+        );
+
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
     public function getProxyShareUsers($id)
     {
         $proxyShares = $this->proxyService->getProxyShareUsers($id, true);

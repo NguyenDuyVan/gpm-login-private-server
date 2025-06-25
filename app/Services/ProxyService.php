@@ -22,7 +22,7 @@ class ProxyService
      */
     public function getProxies(User $user, array $filters = [])
     {
-        $query = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_at', 'updated_at');
+        $query = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at');
 
         // Apply search filter
         if (!empty($filters['search'])) {
@@ -512,7 +512,6 @@ class ProxyService
     public function bulkShareProxy(array $proxyIds, string $userId, string $role, User $currentUser)
     {
         // Validate proxies
-
         $count = 0;
         foreach ($proxyIds as $id) {
             $result = $this->shareProxy($id, $userId, $role, $currentUser);
@@ -526,6 +525,52 @@ class ProxyService
             'message' => 'ok',
             'data' => [
                 'shared_count' => $count,
+                'total_proxies' => count($proxyIds)
+            ]
+        ];
+    }
+
+    public function removeShareProxy(string $proxyId, string $userId)
+    {
+        $proxyShare = ProxyShare::where('proxy_id', $proxyId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($proxyShare == null) {
+            return ['success' => false, 'message' => 'share_not_found', 'data' => null];
+        }
+
+        $proxy = Proxy::find($proxyId);
+        if ($proxy == null) {
+            return ['success' => false, 'message' => 'proxy_not_found', 'data' => null];
+        }
+
+        $currentUser = auth()->user();
+
+        if (!$this->canAccessProxy($currentUser, $proxy, [ProxyShare::ROLE_FULL])) {
+            return ['success' => false, 'message' => 'owner_required', 'data' => null];
+        }
+
+        $proxyShare->delete();
+
+        return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+    public function bulkRemoveShareProxy(array $proxyIds, string $userId)
+    {
+        $count = 0;
+        foreach ($proxyIds as $id) {
+            $result = $this->removeShareProxy($id, $userId);
+            if ($result['success']) {
+                $count++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'ok',
+            'data' => [
+                'removed_count' => $count,
                 'total_proxies' => count($proxyIds)
             ]
         ];
