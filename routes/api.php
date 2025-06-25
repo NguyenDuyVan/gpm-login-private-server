@@ -58,9 +58,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/count', [GroupController::class, 'getTotal']);
         Route::post('/create', [GroupController::class, 'store']);
         Route::post('/update/{id}', [GroupController::class, 'update']);
-        Route::get('/delete/{id}', [GroupController::class, 'destroy']);
+        Route::post('/delete/{id}', [GroupController::class, 'destroy']);
         Route::get('/share/{id}', action: [GroupController::class, 'share']);
-        Route::get('/remove-share/{id}', action: [GroupController::class, 'removeShare']);
+        Route::post('/remove-share/{id}', action: [GroupController::class, 'removeShare']);
         Route::get('/{id}', [GroupController::class, 'show']);
         Route::get('/get-share-users/{id}', [GroupController::class, 'getGroupShareUsers']);
     });
@@ -72,7 +72,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/create', [ProfileController::class, 'store']);
         Route::post('/update/{id}', [ProfileController::class, 'update']);
         Route::post('/bulk-edit-property', [ProfileController::class, 'bulkEditProperty']);
-        Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
+        Route::post('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::post('/share/{id}', action: [ProfileController::class, 'share']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
         Route::post('/bulk-remove-share', [ProfileController::class, 'bulkRemoveShare']);
@@ -82,6 +82,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update-status/{id}', [ProfileController::class, 'updateStatus']);
         Route::post('/add-tags/{id}', [ProfileController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProfileController::class, 'removeTags']);
+        Route::post('/remove-all-tags/{id}', [ProfileController::class, 'removeAllTags']);
         Route::post('/restore/{id}', [ProfileController::class, 'restore']);
     });
 
@@ -95,6 +96,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagController::class, 'index']);
         Route::get('/with-count', [TagController::class, 'getTagsWithCount']);
+        Route::get('/get-by-name', [TagController::class, 'getByName']);
         Route::get('/{id}', [TagController::class, 'show']);
         Route::post('/create', [TagController::class, 'store']);
         Route::post('/update/{id}', [TagController::class, 'update']);
@@ -106,11 +108,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [ProxyController::class, 'show']);
         Route::post('/bulk-create', [ProxyController::class, 'bulkStore']);
         Route::post('/update/{id}', [ProxyController::class, 'update']);
-        Route::get('/delete/{id}', [ProxyController::class, 'destroy']);
+        Route::post('/delete/{id}', [ProxyController::class, 'destroy']);
         Route::post('/bulk-delete', [ProxyController::class, 'bulkDelete']);
         Route::post('/add-tags/{id}', [ProxyController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
-        Route::get('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
+        Route::post('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
         Route::post('/bulk-share', [ProxyController::class, 'bulkShare']);
         Route::post('/bulk-remove-share', [ProxyController::class, 'bulkRemoveShare']);
         Route::get('/get-share-users/{id}', [ProxyController::class, 'getProxyShareUsers']);
