@@ -24,7 +24,7 @@ class ProfileController extends BaseController
             'group_id' => $request->group_id ?? null,
             'search' => $request->search ?? null,
             'share_mode' => $request->share_mode ?? null,
-            'tags' => $request->tags ?? null,
+            'tags' => $request->tags ?? $request->tag_id ?? null,
             'sort' => $request->sort ?? null,
             'per_page' => $request->per_page ?? 30,
             'page' => $request->page ?? 1
@@ -174,7 +174,8 @@ class ProfileController extends BaseController
     public function addTags($id, Request $request)
     {
         $user = $request->user();
-        $result = $this->profileService->addTagsToProfile($id, $request->tags, $user);
+        $tags = $request->tags ?? $request->all() ?? [];
+        $result = $this->profileService->addTagsToProfile($id, $tags, $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -182,6 +183,12 @@ class ProfileController extends BaseController
     {
         $user = $request->user();
         $result = $this->profileService->removeTagsFromProfile($id, $request->tags, $user);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function removeAllTags($id, Request $request)
+    {
+        $result = $this->profileService->removeAllTagsFromProfile($id);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 

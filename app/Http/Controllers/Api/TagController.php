@@ -27,10 +27,18 @@ class TagController extends BaseController
         $filters = [
             'search' => $request->get('search'),
             'per_page' => $request->get('per_page', 30),
-            'page' => $request->get('page', 1)
+            'page' => $request->get('page', 1),
+            'tag_id' => $request->get('tag_id') ?? null,
+            'category' => $request->get('category') ?? null,
         ];
 
         $result = $this->tagService->getAllTags($filters);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function getByName(Request $request)
+    {
+        $result = $this->tagService->getTagByName($request->name, $request->category);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 

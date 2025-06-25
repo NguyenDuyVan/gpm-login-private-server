@@ -20,7 +20,7 @@ class ProxyService
     /**
      * Get proxies with filters
      */
-    public function getProxies(User $user, array $filters = [])
+    public function getProxies(User $user, array $filters = [], string $sort = 'created_desc')
     {
         $query = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at');
 
@@ -31,18 +31,35 @@ class ProxyService
                 $q->where('raw_proxy', 'like', "%{$search}%");
             });
         }
-
         // Apply tag filter
-        if (!empty($filters['tags'])) {
-            $tagIds = is_array($filters['tags']) ? $filters['tags'] : explode(',', $filters['tags']);
-            $query->whereHas('tags', function ($q) use ($tagIds) {
-                $q->whereIn('tags.id', $tagIds);
+        if (!empty($filters['tag_id'])) {
+            $tagId = $filters['tag_id'];
+            $query->whereHas('tags', function ($q) use ($tagId) {
+                $q->where('tags.id', $tagId);
             });
         }
 
         // Apply status filter
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        switch ($sort) {
+            case 'created_desc':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'created_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('raw_proxy', 'desc');
+                break;
+            case 'name_asc':
+                $query->orderBy('raw_proxy', 'asc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
         }
 
         // Apply user permissions

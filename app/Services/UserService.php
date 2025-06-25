@@ -32,7 +32,7 @@ class UserService
      */
     public function getUsers(array $filters = [])
     {
-        $query = User::select('email', 'system_role');
+        $query = User::select('id', 'email', 'display_name');
 
         // Apply search filter
         if (isset($filters['search']) && !empty($filters['search'])) {

@@ -26,10 +26,11 @@ class ProxyController extends BaseController
             'tags' => $request->tags ?? null,
             'status' => $request->status ?? null,
             'per_page' => $request->per_page ?? 30,
-            'page' => $request->page ?? 1
+            'page' => $request->page ?? 1,
+            'tag_id' => $request->tag_id ?? null,
         ];
-
-        $proxies = $this->proxyService->getProxies($user, $filters);
+        $sort = $request->sort ?? 'created_desc';
+        $proxies = $this->proxyService->getProxies($user, $filters, $sort);
         return $this->getJsonResponse(true, 'OK', $proxies);
     }
 
@@ -93,7 +94,8 @@ class ProxyController extends BaseController
     public function bulkDelete(Request $request)
     {
         $user = $request->user();
-        $result = $this->proxyService->bulkDeleteProxy($request->proxy_ids ?? $request->all() ?? [], $user);
+        $proxyIds = $request->proxy_ids ?? $request->ids ?? $request->all() ?? [];
+        $result = $this->proxyService->bulkDeleteProxy($proxyIds, $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -107,7 +109,8 @@ class ProxyController extends BaseController
     public function removeTags($id, Request $request)
     {
         $user = $request->user();
-        $result = $this->proxyService->removeTagsFromProxy($id, $request->tag_ids ?? $request->all() ?? [], $user);
+        $tags = $request->tags ?? $request->tag_ids ?? $request->all() ?? [];
+        $result = $this->proxyService->removeTagsFromProxy($id, $tags, $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -123,7 +126,7 @@ class ProxyController extends BaseController
         $user = $request->user();
 
         $result = $this->proxyService->bulkShareProxy(
-            $request->proxy_ids,
+            $request->proxy_ids ?? $request->ids,
             $request->user_id,
             $request->role,
             $user

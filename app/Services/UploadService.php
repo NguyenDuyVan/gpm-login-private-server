@@ -163,17 +163,26 @@ class UploadService
         }
     }
 
-    public function createDownloadUrl(string $storage_path)
+    public function createDownloadUrl(string $storage_path, $checkFileExists)
     {
         try {
             // Initialize settings if needed
             $this->settingService->initializeDefaultSettings();
 
             // Get storage type from database
-            $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
+            $storageType = $this->settingService->getSetting('storage_type')?->value ?? 'local';
 
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
+                if ($checkFileExists == true) {
+                    if (!Storage::disk('s3')->exists($storage_path)) {
+                        return [
+                            'success' => false,
+                            'message' => 'file_not_found',
+                            'data' => null
+                        ];
+                    }
+                }
                 $result = $this->s3UploadService->generateDownloadPresignedUrl($storage_path);
             } else {
                 $relativePath = ltrim(preg_replace('/^storage\//', '', $storage_path));

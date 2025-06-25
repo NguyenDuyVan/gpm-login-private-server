@@ -42,6 +42,19 @@ class TagService
         ];
     }
 
+    public function getTagByName(string $name, string $category)
+    {
+        $query = Tag::query()->select('id', 'name', 'color', 'category');
+        $query->where('name', $name);
+        $query->where('category', $category);
+        $result = $query->first();
+        return [
+            'success' => $result ? true : false,
+            'message' => $result ? 'ok' : 'tag_not_found',
+            'data' => $result
+        ];
+    }
+
     /**
      * Get tag by ID
      */
