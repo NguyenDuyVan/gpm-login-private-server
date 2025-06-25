@@ -540,7 +540,7 @@ class ProfileService
         $ref = $value;
     }
 
-    function editProperty(string $profileId, string $fieldName, string $newValue)
+    function editProperty(string $profileId, string $fieldName, ?string $newValue)
     {
         $profile = Profile::active()->find($profileId);
 
@@ -590,7 +590,7 @@ class ProfileService
 
 
 
-    public function bulkEditProperty(array $profileIds, string $fieldName, string $newValue)
+    public function bulkEditProperty(array $profileIds, string $fieldName, ?string $newValue)
     {
         $count = 0;
         foreach ($profileIds as $profileId) {
@@ -603,6 +603,32 @@ class ProfileService
         return ['success' => true, 'message' => 'ok', 'data' => [
             'updated_count' => $count,
             'total_profiles' => count(value: $profileIds)
+        ]];
+    }
+
+    public function bulkEditProxy(array $profileIds, array $proxies)
+    {
+        $count = 0;
+        $index = 0;
+        $countProxies = count($proxies);
+        $lastError = null;
+        foreach ($profileIds as $profileId) {
+            $newValue = $proxies[$index % $countProxies] ?? null;
+            if($newValue == "null")
+                $newValue = null;
+            $result = $this->editProperty($profileId, "proxy.raw_proxy", $newValue);
+            if ($result['success']) {
+                $count++;
+            } else {
+                $lastError = $result['message'];
+            }
+            $index++;
+        }
+
+        return ['success' => true, 'message' => 'ok', 'data' => [
+            'updated_count' => $count,
+            'total_profiles' => count(value: $profileIds),
+            'last_error' => $lastError
         ]];
     }
 

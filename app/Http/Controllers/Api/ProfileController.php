@@ -161,6 +161,13 @@ class ProfileController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
+    public function bulkEditProxy(Request $request)
+    {
+        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
+        $result = $this->profileService->bulkEditProxy($profile_ids, $request->proxies);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
     public function getTotal()
     {
         $total = $this->profileService->getTotalProfiles();
