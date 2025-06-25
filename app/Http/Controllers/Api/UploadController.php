@@ -30,7 +30,7 @@ class UploadController extends BaseController
 
     public function delete(Request $request)
     {
-        $result = $this->uploadService->deleteFile($request->file);
+        $result = $this->uploadService->deleteFile($request->storage_path);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -51,6 +51,12 @@ class UploadController extends BaseController
         // Generate presigned URL
         $result = $this->s3UploadService->generatePresignedUploadUrl($fileName, $maxFileSize, $expires, $mimeType);
 
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function createDownloadUrl(Request $request)
+    {
+        $result = $this->uploadService->createDownloadUrl($request->file_key);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 }

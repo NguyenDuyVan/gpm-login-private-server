@@ -6,6 +6,7 @@ use Aws\S3\S3Client;
 use Aws\S3\PostObjectV4;
 use Exception;
 use Illuminate\Support\Facades\Storage;
+use Aws\Exception\AwsException;
 
 class S3UploadService
 {
@@ -77,14 +78,11 @@ class S3UploadService
 
     public function generateUploadPresignedUrl($fileName, $expires = '+10 minutes', $mimeType = 'application/octet-stream')
     {
-        // Nhận kiểu MIME từ client
         // $mimeType = 'application/octet-stream';
 
-        // Tạo tên file duy nhất
         // Key S3
         $key = 'profiles/' . $fileName;
 
-        // Tạo S3Client
         // Initialize settings if needed
         $this->settingService->initializeDefaultSettings();
 
@@ -130,10 +128,10 @@ class S3UploadService
             'Bucket' => $bucket,
             'Key' => $key,
             'ContentType' => $mimeType,
-            'ACL' => 'public-read' // nếu bạn muốn file public sau khi upload
+            // 'ACL' => 'public-read' // use presigned url to download file
         ];
 
-        // Tạo URL upload (presigned PUT)
+        // presigned PUT
         $command = $s3->getCommand('PutObject', $options);
 
         // $expires = '+10 minutes';
@@ -142,15 +140,15 @@ class S3UploadService
 
         $presignedUrl = (string) $request->getUri();
 
-        // Trả về thông tin cho frontend
         return [
             'success' => true,
             'message' => 'Presigned URL generated successfully',
             'data' => [
-                'upload_url' => $presignedUrl,              // Dùng để PUT file
-                'public_url' => "https://{$bucket}.s3.amazonaws.com/{$key}", // URL truy cập sau khi upload
-                'key' => $key,                               // Đường dẫn file trong bucket
-                // 'expires_in' => 600,                         // 10 phút
+                'upload_url' => $presignedUrl,
+                // 'public_url' => "https://{$bucket}.s3.amazonaws.com/{$key}",
+                'key' => $key,
+                'storage_path' => $key,
+                // 'expires_in' => 600,                         // 10 minutes
                 'mime_type' => $mimeType,
                 'method' => 'PUT'
             ]
@@ -165,7 +163,7 @@ class S3UploadService
      * @param string $expires Expiration time (default: +10 minutes)
      * @return array
      */
-    public function generatePresignedUploadUrl($fileName = null, $maxFileSize = 10485760, $expires = '+10 minutes', $mimeType = 'application/octet-stream')
+    public function generatePresignedUploadUrl($fileName = null, $maxFileSize = 10485760, $expires = '+50 minutes', $mimeType = 'application/octet-stream')
     {
         try {
             return $this->generateUploadPresignedUrl($fileName, $expires, $mimeType);
@@ -176,93 +174,77 @@ class S3UploadService
                 'data' => null
             ];
         }
+    }
 
-        // try {
-        //     // Initialize settings if needed
-        //     $this->settingService->initializeDefaultSettings();
+    public function generateDownloadPresignedUrl($fileKey, $expires = '+50 minutes')
+    {
+        // Initialize settings if needed
+        $this->settingService->initializeDefaultSettings();
 
-        //     // Get S3 settings from database
-        //     $s3Settings = $this->settingService->getS3Settings();
+        // Get S3 settings
+        $s3Settings = $this->settingService->getS3Settings();
 
-        //     if (!$s3Settings['success']) {
-        //         return [
-        //             'success' => false,
-        //             'message' => 'S3 configuration not found or incomplete',
-        //             'data' => null
-        //         ];
-        //     }
+        if (!$s3Settings['success']) {
+            return [
+                'success' => false,
+                'message' => 'S3 configuration not found or incomplete',
+                'data' => null
+            ];
+        }
 
-        //     $s3Data = $s3Settings['data'];
+        $s3Data = $s3Settings['data'];
 
-        //     // Validate S3 configuration
-        //     if (empty($s3Data['s3_api_key']) || empty($s3Data['s3_api_secret']) ||
-        //         empty($s3Data['s3_api_bucket']) || empty($s3Data['s3_api_region'])) {
-        //         return [
-        //             'success' => false,
-        //             'message' => 'S3 configuration is incomplete. Please check your S3 settings.',
-        //             'data' => null
-        //         ];
-        //     }
+        if (
+            empty($s3Data['s3_api_key']) || empty($s3Data['s3_api_secret']) ||
+            empty($s3Data['s3_api_bucket']) || empty($s3Data['s3_api_region'])
+        ) {
+            return [
+                'success' => false,
+                'message' => 'S3 configuration is incomplete. Please check your S3 settings.',
+                'data' => null
+            ];
+        }
 
-        //     // Create S3 client
-        //     $regionCode = $this->getS3RegionCode($s3Data['s3_api_region']);
-        //     $s3 = new S3Client([
-        //         'version' => 'latest',
-        //         'region' => $regionCode,
-        //         'credentials' => [
-        //             'key' => $s3Data['s3_api_key'],
-        //             'secret' => $s3Data['s3_api_secret'],
-        //         ],
-        //     ]);
+        try {
+            $regionCode = $this->getS3RegionCode($s3Data['s3_api_region']);
+            $s3 = new S3Client([
+                'version' => 'latest',
+                'region' => $regionCode,
+                'credentials' => [
+                    'key' => $s3Data['s3_api_key'],
+                    'secret' => $s3Data['s3_api_secret'],
+                ],
+            ]);
 
-        //     $bucket = $s3Data['s3_api_bucket'];
+            $bucket = $s3Data['s3_api_bucket'];
 
-        //     // Generate unique file key if not provided
-        //     if (!$fileName) {
-        //         $fileName = uniqid() . '.jpg';
-        //     }
+            $options = [
+                'Bucket' => $bucket,
+                'Key' => $fileKey
+            ];
 
-        //     $key = 'uploads/' . $fileName;
+            // Tạo presigned GET request
+            $command = $s3->getCommand('GetObject', $options);
+            $request = $s3->createPresignedRequest($command, $expires);
+            $presignedUrl = (string) $request->getUri();
 
-        //     $formInputs = [
-        //         'key' => $key,
-        //         'acl' => 'public-read'
-        //     ];
-        //     $options = [
-        //         ['acl' => 'public-read'],
-        //         ['bucket' => $bucket],
-        //         ['starts-with', '$key', 'uploads/'],
-        //         ['content-length-range', 0, $maxFileSize] // File size limit
-        //     ];
-
-        //     $postObject = new PostObjectV4(
-        //         $s3,
-        //         $bucket,
-        //         $formInputs,
-        //         $options,
-        //         $expires
-        //     );
-
-        //     $response = [
-        //         'url' => $postObject->getFormAttributes()['action'],
-        //         'fields' => $postObject->getFormInputs(),
-        //         'file_key' => $key,
-        //         'bucket' => $bucket,
-        //         'region' => $regionCode
-        //     ];
-
-        //     return [
-        //         'success' => true,
-        //         'message' => 'Presigned URL generated successfully',
-        //         'data' => $response
-        //     ];
-
-        // } catch (Exception $e) {
-        //     return [
-        //         'success' => false,
-        //         'message' => 'Failed to generate presigned URL: ' . $e->getMessage(),
-        //         'data' => null
-        //     ];
-        // }
+            return $presignedUrl;
+            // return [
+            //     'success' => true,
+            //     'message' => 'Presigned download URL generated successfully',
+            //     'data' => [
+            //         'download_url' => $presignedUrl,
+            //         'key' => $fileKey,
+            //         'method' => 'GET',
+            //         'expires_in' => strtotime($expires) - time() // seconds left
+            //     ]
+            // ];
+        } catch (AwsException $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to generate download URL: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
     }
 }

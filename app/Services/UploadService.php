@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Storage;
 
 class UploadService
 {
-    protected $settingService;
+    protected SettingService $settingService;
+    protected S3UploadService $s3UploadService;
 
-    public function __construct(SettingService $settingService)
+    public function __construct(SettingService $settingService, S3UploadService $s3UploadService)
     {
         $this->settingService = $settingService;
+        $this->s3UploadService = $s3UploadService;
     }
     /**
      * Store uploaded file
@@ -30,7 +32,12 @@ class UploadService
                 $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
 
                 if ($storageType === 's3') {
-                    return $this->storeFileToS3($file, $fileName);
+                    //return $this->storeFileToS3($file, $fileName);
+                    return [
+                        'success' => false,
+                        'message' => 'use_endpoint_upload_s3',
+                        'data' => ['message' => 's3_upload_not_supported']
+                    ];
                 } else {
                     return $this->storeFileLocally($file, $fileName);
                 }
@@ -67,7 +74,9 @@ class UploadService
             'message' => 'ok',
             'data' => [
                 'path' => 'storage/profiles',
-                'file_name' => $fileName
+                'file_name' => $fileName,
+                'file_key' => 'storage/profiles/' . $fileName,
+                'storage_path' => 'storage/profiles/' . $fileName
             ]
         ];
     }
@@ -122,7 +131,7 @@ class UploadService
      * @param string $fileName
      * @return array
      */
-    public function deleteFile(string $fileName)
+    public function deleteFile(string $storage_path)
     {
         try {
             // Initialize settings if needed
@@ -133,17 +142,58 @@ class UploadService
 
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
-                $fullLocation = 'profiles/' . $fileName;
+                $fullLocation = $storage_path;
                 Storage::disk('s3')->delete($fullLocation);
             } else {
-                $fullLocation = 'public/profiles/' . $fileName;
-                Storage::delete($fullLocation);
+                $relativePath = ltrim(preg_replace('/^storage\//', '', $storage_path));
+                Storage::disk('public')->delete($relativePath);
             }
 
             return [
                 'success' => true,
                 'message' => 'ok',
                 'data' => []
+            ];
+        } catch (\Exception $ex) {
+            return [
+                'success' => false,
+                'message' => 'Thất bại',
+                'data' => $ex->getMessage()
+            ];
+        }
+    }
+
+    public function createDownloadUrl(string $fileKey)
+    {
+        try {
+            // Initialize settings if needed
+            $this->settingService->initializeDefaultSettings();
+
+            // Get storage type from database
+            $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
+
+            if ($storageType === 's3') {
+                $this->configureS3FromDatabase();
+                $result = $this->s3UploadService->generateDownloadPresignedUrl($fileKey);
+            } else {
+                $relativePath = ltrim(preg_replace('/^storage\//', '', $fileKey));
+                if (!Storage::disk('public')->exists($relativePath)) {
+                    return [
+                        'success' => false,
+                        'message' => 'file_not_found',
+                        'data' => null
+                    ];
+                }
+                $result = url($fileKey);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'ok',
+                'data' => [
+                    'download_url' => $result,
+                    'expires_in' => 50 * 60
+                ]
             ];
         } catch (\Exception $ex) {
             return [

@@ -87,8 +87,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('file')->group(function () {
         Route::post('upload', [UploadController::class, 'store']);
-        Route::get('delete', [UploadController::class, 'delete']);
+        Route::post('delete', [UploadController::class, 'delete']);
         Route::post('upload-s3', [UploadController::class, 'uploadS3']);
+        Route::post('create-download-url', [UploadController::class, 'createDownloadUrl']);
     });
 
     Route::prefix('tags')->group(function () {
