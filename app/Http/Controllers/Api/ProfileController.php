@@ -99,9 +99,16 @@ class ProfileController extends BaseController
 
     public function destroy($id, Request $request)
     {
-        $user = $request->user();
+        $delete_mode = $request->mode ?? 'soft';
+        $result = $this->profileService->deleteProfile($id, $delete_mode);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
 
-        $result = $this->profileService->deleteProfile($id, $user);
+    public function bulkDelete(Request $request)
+    {
+        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
+        $delete_mode = $request->mode ?? 'soft';
+        $result = $this->profileService->bulkDeleteProfile($profile_ids, $delete_mode);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -196,6 +203,13 @@ class ProfileController extends BaseController
     {
         $user = $request->user();
         $result = $this->profileService->restoreProfile($id, $user);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $profile_ids = $request->profile_ids ?? $request->ids ?? $request->all() ?? [];
+        $result = $this->profileService->bulkRestoreProfile($profile_ids);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 }

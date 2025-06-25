@@ -73,6 +73,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update/{id}', [ProfileController::class, 'update']);
         Route::post('/bulk-edit-property', [ProfileController::class, 'bulkEditProperty']);
         Route::post('/delete/{id}', [ProfileController::class, 'destroy']);
+        Route::post('/bulk-delete', [ProfileController::class, 'bulkDelete']);
         Route::post('/share/{id}', action: [ProfileController::class, 'share']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
         Route::post('/bulk-remove-share', [ProfileController::class, 'bulkRemoveShare']);
@@ -84,6 +85,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/remove-tags/{id}', [ProfileController::class, 'removeTags']);
         Route::post('/remove-all-tags/{id}', [ProfileController::class, 'removeAllTags']);
         Route::post('/restore/{id}', [ProfileController::class, 'restore']);
+        Route::post('/bulk-restore', [ProfileController::class, 'bulkRestore']);
     });
 
     Route::prefix('file')->group(function () {

@@ -286,21 +286,49 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function deleteProfile(string $id, User $user)
+    public function deleteProfile(string $id, $delete_mode = 'soft')
     {
+        $user = auth()->user();
         if (!$this->checkAccessProfile($id, $user, [ProfileShare::ROLE_FULL])) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
         }
 
-        $profile = Profile::active()->find($id);
+        if($delete_mode == 'hard')
+            $query = Profile::query();
+        else
+            $query = Profile::active();
+
+        $profile = $query->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
-        // Soft delete the profile
-        $profile->softDelete($user);
+        if($delete_mode == 'hard') {
+            $profile->delete();
+        } else {
+            $profile->softDelete($user);
+        }
 
         return ['success' => true, 'message' => 'profile_deleted', 'data' => null];
+    }
+
+    public function bulkDeleteProfile(array $profile_ids, $delete_mode = 'soft')
+    {
+        $count = 0;
+        $lastError = null;
+        foreach ($profile_ids as $id) {
+            $result = $this->deleteProfile($id, $delete_mode);
+            if ($result['success']) {
+                $count++;
+            } else {
+                $lastError = $result['message'];
+            }
+        }
+        return ['success' => true, 'message' => 'profile_deleted', 'data' => [
+            'deleted_count' => $count,
+            'total_profiles' => count(value: $profile_ids),
+            'last_error' => $lastError
+        ]];
     }
 
     /**
@@ -324,6 +352,26 @@ class ProfileService
         $profile->restore();
 
         return ['success' => true, 'message' => 'profile_restored', 'data' => null];
+    }
+
+    public function bulkRestoreProfile(array $profile_ids)
+    {
+        $user = auth()->user();
+        $count = 0; 
+        $lastError = null;
+        foreach ($profile_ids as $id) {
+            $result = $this->restoreProfile($id, $user);
+            if ($result['success']) {
+                $count++;
+            } else {
+                $lastError = $result['message'];
+            }
+        }
+        return ['success' => true, 'message' => 'profile_restored', 'data' => [
+            'restored_count' => $count,
+            'total_profiles' => count(value: $profile_ids),
+            'last_error' => $lastError
+        ]];
     }
 
     /**
@@ -602,7 +650,7 @@ class ProfileService
             return true; // Admin can access all
         }
 
-        $profile = Profile::active()->find($profileId);
+        $profile = Profile::find($profileId);
         if (!$profile) {
             return false;
         }
