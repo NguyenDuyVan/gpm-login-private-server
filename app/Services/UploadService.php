@@ -163,7 +163,7 @@ class UploadService
         }
     }
 
-    public function createDownloadUrl(string $fileKey)
+    public function createDownloadUrl(string $storage_path)
     {
         try {
             // Initialize settings if needed
@@ -174,9 +174,9 @@ class UploadService
 
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
-                $result = $this->s3UploadService->generateDownloadPresignedUrl($fileKey);
+                $result = $this->s3UploadService->generateDownloadPresignedUrl($storage_path);
             } else {
-                $relativePath = ltrim(preg_replace('/^storage\//', '', $fileKey));
+                $relativePath = ltrim(preg_replace('/^storage\//', '', $storage_path));
                 if (!Storage::disk('public')->exists($relativePath)) {
                     return [
                         'success' => false,
@@ -184,7 +184,7 @@ class UploadService
                         'data' => null
                     ];
                 }
-                $result = url($fileKey);
+                $result = url($storage_path);
             }
 
             return [
@@ -198,7 +198,7 @@ class UploadService
         } catch (\Exception $ex) {
             return [
                 'success' => false,
-                'message' => 'Thất bại',
+                'message' => 'error',
                 'data' => $ex->getMessage()
             ];
         }

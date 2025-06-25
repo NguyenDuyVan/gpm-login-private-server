@@ -75,7 +75,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::post('/share/{id}', action: [ProfileController::class, 'share']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
-        Route::get('/roles/{id}', [ProfileController::class, 'getProfileShares']);
+        Route::post('/bulk-remove-share', [ProfileController::class, 'bulkRemoveShare']);
         Route::get('/shares/{id}', [ProfileController::class, 'getProfileShares']);
         Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
         Route::post('/stop-using/{id}', [ProfileController::class, 'stopUsing']);

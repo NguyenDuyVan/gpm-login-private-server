@@ -56,7 +56,7 @@ class UploadController extends BaseController
 
     public function createDownloadUrl(Request $request)
     {
-        $result = $this->uploadService->createDownloadUrl($request->file_key);
+        $result = $this->uploadService->createDownloadUrl($request->file_key ?? $request->storage_path);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 }

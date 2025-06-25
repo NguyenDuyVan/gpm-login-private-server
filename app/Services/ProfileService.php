@@ -281,7 +281,7 @@ class ProfileService
      */
     public function deleteProfile(string $id, User $user)
     {
-        if (!$this->canModifyProfile($id, $user)) {
+        if (!$this->checkAccessProfile($id, $user, [ProfileShare::ROLE_FULL])) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
         }
 
@@ -341,7 +341,7 @@ class ProfileService
      * @param User $currentUser
      * @return array
      */
-    public function shareProfile(string $profileId, int $userId, string $role, User $currentUser)
+    public function shareProfile(string $profileId, string $userId, string $role, User $currentUser)
     {
         // Validate shared user
         $sharedUser = User::find($userId);
@@ -418,10 +418,46 @@ class ProfileService
             'message' => 'ok',
             'data' => [
                 'shared_count' => $count,
-                'total_profiles' => count(value: $profiles)
+                'total_profiles' => count(value: $profileIds)
             ]
         ];
 
+    }
+
+    public function removeShareProfile(string $profileId, string $userId)
+    {
+        $user = auth()->user();
+
+        if (!$this->checkAccessProfile($profileId, $user, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT])) {
+            return ['success' => false, 'message' => 'insufficient_permission_profile_share_remove', 'data' => null];
+        }
+
+        $profileShare = ProfileShare::where('profile_id', $profileId)->where('user_id', $userId)->first();
+        if ($profileShare != null) {
+            $profileShare->delete();
+        }
+
+        return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+    public function bulkRemoveShareProfile(array $profileIds, string $userId)
+    {
+        $count = 0;
+        $lastError = null;
+        foreach ($profileIds as $profileId) {
+            $result = $this->removeShareProfile($profileId, $userId);
+            if ($result['success']) {
+                $count++;
+            } else {
+                $lastError = $result['message'];
+            }
+        }
+
+        return ['success' => true, 'message' => 'ok', 'data' => [
+            'removed_count' => $count,
+            'total_profiles' => count(value: $profileIds),
+            'last_error' => $lastError
+        ]];
     }
 
     function arrayHasKeyPath(array $array, string $path): bool
@@ -534,42 +570,7 @@ class ProfileService
      */
     public function canModifyProfile(string $profileId, User $logonUser)
     {
-        if ($logonUser->isAdmin()) {
-            return true; // Admin can modify all
-        }
-
-        $profile = Profile::active()->find($profileId);
-        if (!$profile) {
-            return false;
-        }
-
-        // Check if user is the creator
-        if ($profile->created_by == $logonUser->id) {
-            return true;
-        }
-
-        // Check profile shares with FULL access
-        $profileShare = ProfileShare::where('user_id', $logonUser->id)
-            ->where('profile_id', $profileId)
-            ->where('role', ProfileShare::ROLE_FULL)
-            ->first();
-
-        if ($profileShare != null) {
-            return true;
-        }
-
-        // Check group shares with FULL access
-        if ($profile->group) {
-            $groupShare = GroupShare::where('user_id', $logonUser->id)
-                ->where('group_id', $profile->group_id)
-                ->where('role', GroupShare::ROLE_FULL)
-                ->first();
-            if ($groupShare != null) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->checkAccessProfile($profileId, $logonUser, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT]);
     }
 
     /**
@@ -581,6 +582,15 @@ class ProfileService
      */
     public function canAccessProfile(string $profileId, User $logonUser)
     {
+        return $this->checkAccessProfile($profileId, $logonUser, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT, ProfileShare::ROLE_VIEW]);
+    }
+
+    public function checkAccessProfile(string $profileId, User $logonUser, array $allowRoles)
+    {
+        if ($logonUser == null) {
+            return false;
+        }
+
         if ($logonUser->isAdmin()) {
             return true; // Admin can access all
         }
@@ -598,6 +608,7 @@ class ProfileService
         // Check profile shares
         $profileShare = ProfileShare::where('user_id', $logonUser->id)
             ->where('profile_id', $profileId)
+            ->whereIn('role', $allowRoles)
             ->first();
 
         if ($profileShare != null) {
@@ -608,6 +619,7 @@ class ProfileService
         if ($profile->group) {
             $groupShare = GroupShare::where('user_id', $logonUser->id)
                 ->where('group_id', $profile->group_id)
+                ->whereIn('role', $allowRoles)
                 ->first();
             if ($groupShare != null) {
                 return true;
