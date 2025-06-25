@@ -136,8 +136,9 @@ class ProfileController extends BaseController
     {
         $user = $request->user();
 
+        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
         $result = $this->profileService->bulkShareProfile(
-            $request->profile_ids,
+            $profile_ids,
             $request->user_id,
             $request->role,
             $user
@@ -148,13 +149,15 @@ class ProfileController extends BaseController
 
     public function bulkRemoveShare(Request $request)
     {
-        $result = $this->profileService->bulkRemoveShareProfile($request->profile_ids, $request->user_id);
+        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
+        $result = $this->profileService->bulkRemoveShareProfile($profile_ids, $request->user_id);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
     public function bulkEditProperty(Request $request)
     {
-        $result = $this->profileService->bulkEditProperty($request->profile_ids, $request->field_name, $request->new_value);
+        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
+        $result = $this->profileService->bulkEditProperty($profile_ids, $request->field_name, $request->new_value);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
