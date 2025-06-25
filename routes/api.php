@@ -71,6 +71,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [ProfileController::class, 'show']);
         Route::post('/create', [ProfileController::class, 'store']);
         Route::post('/update/{id}', [ProfileController::class, 'update']);
+        Route::post('/bulk-edit-property', [ProfileController::class, 'bulkEditProperty']);
         Route::get('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::post('/share/{id}', action: [ProfileController::class, 'share']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);

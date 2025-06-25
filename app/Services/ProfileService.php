@@ -11,6 +11,7 @@ use App\Models\Tag;
 use App\Services\TagService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProfileService
 {
@@ -421,6 +422,97 @@ class ProfileService
             ]
         ];
 
+    }
+
+    function arrayHasKeyPath(array $array, string $path): bool
+    {
+        $keys = explode('.', $path);
+        foreach ($keys as $key) {
+            if (!is_array($array) || !array_key_exists($key, $array)) {
+                return false;
+            }
+            $array = $array[$key];
+        }
+        return true;
+    }
+
+    function arraySetByPath(array &$array, string $path, $value)
+    {
+        $keys = explode('.', $path);
+        $ref =& $array;
+        foreach ($keys as $key) {
+            if (!isset($ref[$key]) || !is_array($ref[$key])) {
+                $ref[$key] = [];
+            }
+            $ref =& $ref[$key];
+        }
+        $ref = $value;
+    }
+
+    function editProperty(string $profileId, string $fieldName, string $newValue)
+    {
+        $profile = Profile::active()->find($profileId);
+
+        if ($profile === null) {
+            return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
+        }
+
+        // Lấy danh sách cột của bảng
+        $columns = Schema::getColumnListing('profiles');
+
+        if (in_array($fieldName, $columns)) {
+            $profile->$fieldName = $newValue;
+        } else {
+            $updated = false;
+
+            // Cập nhật trong dynamic_data (hỗ trợ key lồng: proxy.raw_proxy)
+            $dynamicData = json_decode($profile->dynamic_data, true);
+            if (is_array($dynamicData)) {
+                if ($this->arrayHasKeyPath($dynamicData, $fieldName)) {
+                    $this->arraySetByPath($dynamicData, $fieldName, $newValue);
+                    $profile->dynamic_data = json_encode($dynamicData);
+                    $updated = true;
+                }
+            }
+
+            // Nếu chưa cập nhật, thử trong fingerprint_data
+            if (!$updated) {
+                $fingerprintData = json_decode($profile->fingerprint_data, true);
+                if (is_array($fingerprintData)) {
+                    if ($this->arrayHasKeyPath($fingerprintData, $fieldName)) {
+                        $this->arraySetByPath($fingerprintData, $fieldName, $newValue);
+                        $profile->fingerprint_data = json_encode($fingerprintData);
+                        $updated = true;
+                    }
+                }
+            }
+
+            if (!$updated) {
+                return ['success' => false, 'message' => 'field_not_found', 'data' => null];
+            }
+        }
+
+        $profile->save();
+
+        return ['success' => true, 'message' => 'ok', 'data' => null];
+    }
+
+
+
+    public function bulkEditProperty(array $profileIds, string $fieldName, string $newValue)
+    {
+        $count = 0;
+        foreach ($profileIds as $profileId) {
+            $result = $this->editProperty($profileId, $fieldName, $newValue);
+            if ($result['success']) {
+                $count++;
+            }
+        }
+
+        return ['success' => true, 'message' => 'ok', 'data' => [
+            'updated_count' => $count,
+            'total_profiles' => count(value: $profileIds)
+        ]];
     }
 
     /**
