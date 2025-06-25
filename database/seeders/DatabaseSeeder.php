@@ -31,7 +31,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         Group::factory()->create([
+            'id' => '00000000-0000-0000-0000-000000000000',
             'name' => 'All',
+            'sort_order' => 0
         ]);
 
         Group::factory(5)->create();

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Group;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -19,6 +20,7 @@ class WebAuthService
     public function login(string $email, string $password)
     {
         $this->createDefaultAdmin();
+        $this->createDefaultGroup();
 
         // Find active user by email
         $user = User::where('email', $email)
@@ -66,6 +68,27 @@ class WebAuthService
 
             return true;
         } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public function createDefaultGroup()
+    {
+        try {
+            if (Group::count() > 0) {
+                return true;
+            }
+
+            Group::create([
+                'id' => '00000000-0000-0000-0000-000000000000',
+                'name' => 'All',
+                'sort_order' => 0,
+                'created_by' => User::first()->id
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            die($e->getMessage());
             return false;
         }
     }

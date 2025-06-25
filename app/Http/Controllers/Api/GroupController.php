@@ -67,8 +67,6 @@ class GroupController extends BaseController
 
     public function destroy($id, Request $request)
     {
-        $user = $request->user();
-
         $result = $this->groupService->deleteGroup($id);
 
         return $this->getJsonResponse($result['success'], $result['message'], null);

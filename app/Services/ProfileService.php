@@ -80,7 +80,7 @@ class ProfileService
     private function applyFilters($query, User $user, array $filters)
     {
         // Filter by group
-        if (isset($filters['group_id']) && $filters['group_id'] != Group::where('name', 'All')->first()?->id) {
+        if (isset($filters['group_id']) && $filters['group_id'] != '00000000-0000-0000-0000-000000000000') {
             $query->where('group_id', $filters['group_id']);
         }
 
@@ -114,9 +114,14 @@ class ProfileService
 
         // Filter by tags
         if (isset($filters['tags'])) {
-            $tags = explode(",", $filters['tags']);
+            $tags = is_array($filters['tags']) ? $filters['tags'] : explode(",", $filters['tags']);
+            $tags = array_map('trim', $tags);
+        
             $query->whereHas('tags', function ($q) use ($tags) {
-                $q->whereIn('name', $tags);
+                $q->where(function ($sub) use ($tags) {
+                    $sub->whereIn('tags.name', $tags)
+                         ->orWhereIn('tags.id', $tags); // CHỈ RÕ BẢNG!
+                });
             });
         }
 
@@ -124,12 +129,14 @@ class ProfileService
         if (isset($filters['sort'])) {
             switch ($filters['sort']) {
                 case 'created':
+                case 'created_asc':
                     $query->orderBy('created_at');
                     break;
-                case 'created_at_desc':
+                case 'created_desc':
                     $query->orderBy('created_at', 'desc');
                     break;
                 case 'name':
+                case 'name_asc':
                     $query->orderBy('name');
                     break;
                 case 'name_desc':
@@ -215,7 +222,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function updateProfile(string $id, string $name, string $storagePath, ?string $fingerprintData, ?string $dynamicData, array $metaData, string $groupId, ?string $lastRunAt, ?string $lastRunBy, User $user)
+    public function updateProfile(string $id, ?string $name, ?string $storagePath, ?string $fingerprintData, ?string $dynamicData, ?string $metaData, ?string $groupId, ?string $lastRunAt, ?string $lastRunBy, User $user)
     {
         if (!$this->canModifyProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
@@ -226,14 +233,14 @@ class ProfileService
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
-        $profile->name = $name;
-        $profile->storage_path = $storagePath;
-        $profile->fingerprint_data = $fingerprintData;
-        $profile->dynamic_data = $dynamicData;
-        $profile->meta_data = $metaData;
-        $profile->group_id = $groupId;
-        $profile->last_run_at = $lastRunAt;
-        $profile->last_run_by = $lastRunBy;
+        $profile->name             = $name            ?? $profile->name;
+        $profile->storage_path     = $storagePath     ?? $profile->storage_path;
+        $profile->fingerprint_data = $fingerprintData ?? $profile->fingerprint_data;
+        $profile->dynamic_data     = $dynamicData     ?? $profile->dynamic_data;
+        $profile->meta_data        = $metaData        ?? $profile->meta_data;
+        $profile->group_id         = $groupId         ?? $profile->group_id;
+        $profile->last_run_at      = $lastRunAt       ?? $profile->last_run_at;
+        $profile->last_run_by      = $lastRunBy       ?? $profile->last_run_by;
         $profile->save();
 
         return ['success' => true, 'message' => 'ok', 'data' => null];
@@ -718,7 +725,7 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function addTagsToProfile(string $profileId, array $tagNames, User $user)
+    public function addTagsToProfile(string $profileId, array $tags, User $user)
     {
         try {
             if (!$this->canModifyProfile($profileId, $user)) {
@@ -730,13 +737,21 @@ class ProfileService
                 return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
             }
 
-            if (empty($tagNames)) {
+            if (empty($tags)) {
                 return ['success' => false, 'message' => 'tag_list_empty', 'data' => null];
             }
 
             // Find or create tags
-            $tags = $this->tagService->findOrCreateTags($tagNames, $user->id);
-            $tagIds = collect($tags)->pluck('id')->toArray();
+            $isArrayOfIds = is_array($tags) && collect($tags)->every(fn($tag) => is_int($tag) || is_string($tag));
+            if ($isArrayOfIds) {
+                $tagIds = $tags;
+            } else {
+                $tags = $this->tagService->createOrUpdateTags($tags, $user->id);
+                $tagIds = collect($tags)->pluck('id')->toArray();
+            }
+
+            // $tags = $this->tagService->findOrCreateTags($tagNames, $user->id);
+            // $tagIds = collect($tags)->pluck('id')->toArray();
 
             // Attach tags to profile (avoid duplicates)
             $profile->tags()->syncWithoutDetaching($tagIds);
@@ -792,6 +807,44 @@ class ProfileService
                 'success' => false,
                 'message' => 'error_with_details',
                 'data' => null
+            ];
+        }
+    }
+
+    public function removeAllTagsFromProfile(string $profileId)
+    {
+        try {
+            $profile = Profile::active()->find($profileId);
+            if (!$profile) {
+                return [
+                    'success' => false,
+                    'message' => 'profile_not_found',
+                    'data' => null
+                ];
+            }
+
+            // Check if user has permission to manage this proxy
+            $user = auth()->user();
+            if (!$this->canModifyProfile($profileId, $user)) {
+                return [
+                    'success' => false,
+                    'message' => 'insufficient_permission_proxy_remove_tags',
+                    'data' => null
+                ];
+            }
+
+            $profile->tags()->detach();
+
+            return [
+                'success' => true,
+                'message' => 'ok',
+                'data' => null
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'error_with_details',
+                'data' => ['details' => $e->getMessage()]
             ];
         }
     }

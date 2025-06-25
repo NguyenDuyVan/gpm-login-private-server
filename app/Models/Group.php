@@ -19,6 +19,7 @@ class Group extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'id',
         'name',
         'sort_order',
         'created_by',

@@ -23,7 +23,7 @@ class GroupService
             ->orWhereHas('shares', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-            ->orWhere('name', 'All')
+            ->orWhere('id', '00000000-0000-0000-0000-000000000000')
             ->distinct();
         }
 
@@ -47,7 +47,7 @@ class GroupService
     {
         $user = auth()->user();
         $group = Group::find($id);
-        if($group->name != 'All') {
+        if($group->id != '00000000-0000-0000-0000-000000000000') {
             if(!$this->canAccessGroup($id, $user, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
                 return null;
             }
@@ -91,6 +91,10 @@ class GroupService
      */
     public function updateGroup(string $id, string $name, int $order, string $updatedBy)
     {
+        if($id == '00000000-0000-0000-0000-000000000000') {
+            return null;
+        }
+
         $user = auth()->user();
 
         $group = Group::find($id);
