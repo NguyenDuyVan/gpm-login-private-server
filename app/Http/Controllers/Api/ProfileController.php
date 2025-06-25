@@ -106,7 +106,7 @@ class ProfileController extends BaseController
 
     public function bulkDelete(Request $request)
     {
-        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
+        $profile_ids = $request->profile_ids ?? $request->ids ?? $request->all() ?? [];
         $delete_mode = $request->mode ?? 'soft';
         $result = $this->profileService->bulkDeleteProfile($profile_ids, $delete_mode);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
